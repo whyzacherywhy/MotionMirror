@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Profiles</title>
+    <link rel="stylesheet" href="/coach-lab.css" />
+  </head>
+  <body class="archive-body">
+    <main class="archive-shell">
+      <header class="archive-topbar">
+        <div>
+          <p>Profiles</p>
+          <h1>Runner archive</h1>
+        </div>
+        <nav class="archive-nav">
+          <a href="/">Home</a>
+          <a href="/coach.html?session=demo">Coach</a>
+          <a href="/runner.html?session=demo">Runner</a>
+        </nav>
+      </header>
+
+      <section class="archive-section">
+        <div class="section-head">
+          <div>
+            <p>Saved runners</p>
+            <h2>Profiles</h2>
+          </div>
+          <button id="createProfile">New profile</button>
+        </div>
+        <div class="profile-grid" id="profilesList"></div>
+      </section>
+    </main>
+
+    <script src="/shared.js"></script>
+    <script src="/run-storage.js"></script>
+    <script src="/profiles.js"></script>
+  </body>
+</html>

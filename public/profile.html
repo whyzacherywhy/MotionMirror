@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Runner Profile</title>
+    <link rel="stylesheet" href="/coach-lab.css" />
+  </head>
+  <body class="archive-body">
+    <main class="archive-shell">
+      <header class="archive-topbar">
+        <div>
+          <p>Runner profile</p>
+          <h1 id="profileName">Profile</h1>
+        </div>
+        <nav class="archive-nav">
+          <a href="/">Home</a>
+          <a href="/profiles.html">Profiles</a>
+          <a href="/coach.html?session=demo">Coach</a>
+        </nav>
+      </header>
+
+      <section class="archive-section profile-overview">
+        <div class="profile-photo-block">
+          <div class="profile-photo" id="profilePhotoPreview">Photo</div>
+          <label class="photo-upload is-locked" id="photoUploadLabel">
+            <span>Upload photo</span>
+            <input id="profilePhotoInput" type="file" accept="image/*" disabled />
+          </label>
+        </div>
+
+        <form class="profile-form" id="profileForm">
+          <div class="section-head compact">
+            <div>
+              <p>Runner notes</p>
+              <h2>Profile overview</h2>
+            </div>
+            <button type="submit" class="primary" id="saveProfileInfo">Edit profile</button>
+          </div>
+
+          <div class="profile-fields">
+            <label>
+              <p>Name</p>
+              <input id="profileRunnerName" placeholder="Runner name" />
+            </label>
+            <label>
+              <p>Age</p>
+              <input id="profileAge" placeholder="Age" inputmode="numeric" />
+            </label>
+            <label>
+              <p>Location</p>
+              <input id="profileLocation" placeholder="City, state" />
+            </label>
+            <label class="wide-field">
+              <p>Goals</p>
+              <textarea id="profileGoals" placeholder="Goals you have talked about together"></textarea>
+            </label>
+            <label class="wide-field">
+              <p>Coach observations</p>
+              <textarea id="profileCoachNotes" placeholder="Form notes, patterns, preferences, strengths, limiters, context."></textarea>
+            </label>
+          </div>
+        </form>
+      </section>
+
+      <section class="archive-section">
+        <div class="section-head">
+          <div>
+            <p>Newest first</p>
+            <h2>Run history</h2>
+          </div>
+        </div>
+        <div class="run-list" id="runsList"></div>
+      </section>
+    </main>
+
+    <script src="/shared.js"></script>
+    <script src="/run-storage.js"></script>
+    <script src="/profiles.js"></script>
+  </body>
+</html>

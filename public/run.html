@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Run Summary</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/coach-lab.css" />
+  </head>
+  <body class="archive-body">
+    <main class="archive-shell">
+      <header class="archive-topbar">
+        <div>
+          <p>Run summary</p>
+          <h1 id="runTitle">Saved run</h1>
+        </div>
+        <nav class="archive-nav">
+          <a href="/">Home</a>
+          <a id="backToProfile" href="/profiles.html">Profile</a>
+          <a href="/coach.html?session=demo">Coach</a>
+        </nav>
+      </header>
+
+      <section class="summary-grid">
+        <div class="summary-map" id="summaryMap"></div>
+
+        <aside class="summary-panel">
+          <div class="summary-metrics">
+            <div><p>Time</p><strong id="summaryTime">0:00</strong></div>
+            <div><p>Distance</p><strong id="summaryDistance">0.00 mi</strong></div>
+            <div><p>Avg pace</p><strong id="summaryPace">--</strong></div>
+            <div><p>Elevation</p><strong id="summaryElevation">--</strong></div>
+            <div><p>Weather</p><strong id="summaryWeather">--</strong></div>
+          </div>
+          <label class="notes-box">
+            <p>Notes</p>
+            <textarea id="runNotes" placeholder="Add coaching reflections, what worked, what to adjust next time."></textarea>
+          </label>
+          <button id="saveNotes" class="primary">Edit notes</button>
+        </aside>
+      </section>
+
+      <section class="summary-tables">
+        <article>
+          <div class="section-head compact">
+            <div>
+              <p>Per mile</p>
+              <h2>Mile data</h2>
+            </div>
+          </div>
+          <div class="data-table" id="mileTable"></div>
+        </article>
+
+        <article>
+          <div class="section-head compact">
+            <div>
+              <p>Coach button</p>
+              <h2>Splits</h2>
+            </div>
+          </div>
+          <div class="data-table" id="splitTable"></div>
+        </article>
+
+        <article>
+          <div class="section-head compact">
+            <div>
+              <p>Timeline</p>
+              <h2>History log</h2>
+            </div>
+          </div>
+          <ol class="summary-history" id="summaryHistory"></ol>
+        </article>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/shared.js"></script>
+    <script src="/run-storage.js"></script>
+    <script src="/profiles.js"></script>
+  </body>
+</html>

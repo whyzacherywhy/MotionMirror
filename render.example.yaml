@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: coachlink
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+
+# Add a Postgres database in Render manually first so you can choose the plan/cost.
+# Then paste its DATABASE_URL into the CoachLink web service environment variables.

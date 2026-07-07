@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coach Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/coach-lab.css" />
+  </head>
+  <body>
+    <main class="lab-shell">
+      <header class="lab-topbar">
+        <div class="identity">
+          <span class="pulse-mark"></span>
+          <div>
+            <p>Coach Live Map</p>
+            <strong>Performance Lab</strong>
+          </div>
+        </div>
+        <div class="session-state">
+          <span id="connectionState">Runner disconnected</span>
+          <span id="trackingState">Tracking off</span>
+          <a href="/">Home</a>
+          <a href="/runner.html?session=demo" id="runnerLink">Runner link</a>
+          <button id="copyLink">Copy</button>
+          <button id="saveRun">Save run</button>
+        </div>
+      </header>
+
+      <section class="lab-stats">
+        <div class="stat-primary">
+          <p>Current mile split</p>
+          <strong id="splitPace">--</strong>
+          <span id="splitProgress">0.00/1 mi</span>
+        </div>
+        <div>
+          <p>Running time</p>
+          <strong id="runTime">0:00</strong>
+          <span id="distance">0.00 mi</span>
+        </div>
+        <div>
+          <p>Overall average</p>
+          <strong id="averagePace">--</strong>
+          <span id="grade">grade --</span>
+        </div>
+        <div>
+          <p>Elevation gain</p>
+          <strong id="elevation">-- ft</strong>
+          <span id="updatedAt">waiting</span>
+        </div>
+      </section>
+
+      <section class="lab-workspace">
+        <aside class="lab-panel left-panel">
+          <section class="runner-block">
+            <div class="runner-avatar" id="runnerAvatar">R</div>
+            <div>
+              <p>Runner</p>
+              <h1 id="runnerName">Waiting for runner</h1>
+            </div>
+            <strong id="statusPill">IDLE</strong>
+          </section>
+
+          <section class="split-table">
+            <div class="table-head">
+              <span>Metric</span>
+              <span>Value</span>
+              <span>Live</span>
+            </div>
+            <div>
+              <span>Current mile</span>
+              <strong id="currentSplit">--</strong>
+              <em id="currentGain">+0 ft</em>
+            </div>
+            <div>
+              <span>Coach split</span>
+              <strong id="effortPace">--</strong>
+              <em id="effortDistance">0.00 mi</em>
+            </div>
+            <div>
+              <span id="effortTitle">No active effort</span>
+              <strong id="effortElapsed">0:00</strong>
+              <em>elapsed</em>
+            </div>
+          </section>
+
+          <section class="cue-card">
+            <div class="cue-head">
+              <div>
+                <p>Coach note</p>
+                <strong id="latestCue">No notes yet</strong>
+              </div>
+              <button id="startEffortSplit" class="primary">Split</button>
+            </div>
+
+            <form id="cueForm" class="cue-form">
+              <input id="cueInput" maxlength="180" placeholder="Private note for this moment" />
+              <button type="submit">Log</button>
+            </form>
+
+            <div class="cue-actions quick-cues">
+              <button data-cue="Pick up the pace.">Pick up the pace</button>
+              <button data-cue="Hold this pace.">Hold this pace</button>
+              <button data-cue="Push up that hill.">Push up that hill</button>
+              <button data-cue="Push through that intersection.">Push through intersection</button>
+              <button data-cue="Recover at the top.">Recover at the top</button>
+              <button data-cue="Recover on this downhill.">Recover downhill</button>
+              <button data-cue="Gather your breath.">Gather your breath</button>
+              <button data-cue="Intentional breathing.">Intentional breathing</button>
+              <button data-cue="Focus on your form.">Focus on form</button>
+              <button data-cue="Push for the next minute.">Push next minute</button>
+              <button data-cue="Empty the tank.">Empty the tank</button>
+              <button data-cue="Light on your feet.">Light on your feet</button>
+            </div>
+          </section>
+        </aside>
+
+        <section class="map-stage">
+          <div id="map"></div>
+          <div class="map-controls">
+            <button id="streetLayer" class="active">Street</button>
+            <button id="terrainLayer">Terrain</button>
+          </div>
+          <div class="map-readout">
+            <p>Map readout</p>
+            <strong id="mapReadout">Waiting for runner</strong>
+          </div>
+        </section>
+
+        <aside class="lab-panel right-panel">
+          <section>
+            <p>Route monitor</p>
+            <div class="monitor-list">
+              <div><span>Runner link</span><strong id="runnerPresence">Disconnected</strong></div>
+              <div><span>Tracking</span><strong id="trackingPresence">Off</strong></div>
+              <div><span>Run time</span><strong id="runTimeMonitor">0:00</strong></div>
+              <div><span>GPS accuracy</span><strong id="accuracy">-- ft</strong></div>
+              <div><span>Heading</span><strong id="heading">--</strong></div>
+              <div><span>Speed source</span><strong>GPS path</strong></div>
+              <div><span>Split length</span><strong>1.00 mi</strong></div>
+              <div><span>Map layer</span><strong id="layerName">Street</strong></div>
+            </div>
+          </section>
+
+          <section class="cue-log">
+            <p>History</p>
+            <ol class="timeline" id="cueLog"></ol>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <div class="save-modal" id="saveModal" hidden>
+      <section class="save-dialog">
+        <header>
+          <div>
+            <p>Save run</p>
+            <h2>Choose a profile</h2>
+          </div>
+          <button id="closeSaveModal">Close</button>
+        </header>
+
+        <div class="save-choices">
+          <div class="save-choice">
+            <p>Save new</p>
+            <input id="newProfileName" placeholder="Runner name" />
+            <button id="saveNewProfile" class="primary">Save new profile</button>
+          </div>
+
+          <div class="save-choice">
+            <p>Save to existing</p>
+            <select id="existingProfile"></select>
+            <button id="saveExistingProfile">Save to profile</button>
+          </div>
+        </div>
+
+        <div class="save-actions">
+          <p id="saveStatus">Run data will include route, splits, history, elevation, weather, and notes.</p>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/shared.js"></script>
+    <script src="/run-storage.js"></script>
+    <script src="/coach.js"></script>
+  </body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Runner Tracking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body class="runner-page">
+    <main class="runner-shell">
+      <section class="runner-controls">
+        <header class="runner-header">
+          <div class="brand compact">
+            <span class="mark"></span>
+            <div>
+              <p>Coach Live Map</p>
+              <strong>Runner</strong>
+            </div>
+          </div>
+          <div class="runner-badges">
+            <strong id="coachConnection" class="runner-status">Coach disconnected</strong>
+            <strong id="trackingStatus" class="runner-status">Tracking off</strong>
+          </div>
+        </header>
+
+        <section class="runner-hero">
+          <p>Current split pace</p>
+          <strong id="splitPace">--</strong>
+          <span id="splitProgress">0.00/1 mi</span>
+        </section>
+
+        <div class="runner-actions">
+          <button id="startBtn" class="primary">Start run</button>
+          <button id="pauseBtn">Pause</button>
+          <button id="stopBtn">Stop</button>
+        </div>
+
+        <div class="runner-secondary-actions">
+          <label>
+            Name
+            <input id="runnerNameInput" value="Demo Runner" />
+          </label>
+          <button id="demoBtn">Demo movement</button>
+          <button id="mapToggle">Show map</button>
+        </div>
+
+        <div class="runner-metrics">
+          <div><span>Run time</span><strong id="runTime">0:00</strong></div>
+          <div><span>Distance</span><strong id="distance">0.00 mi</strong></div>
+          <div><span>Avg pace</span><strong id="averagePace">--</strong></div>
+          <div><span>Elevation</span><strong id="elevation">-- ft</strong></div>
+        </div>
+
+      </section>
+      <section class="runner-map is-hidden" id="runnerMapPanel">
+        <div class="runner-map-bar">
+          <span>Live map</span>
+          <button id="hideMap">Hide</button>
+        </div>
+        <div id="map"></div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/shared.js"></script>
+    <script src="/runner.js"></script>
+  </body>
+</html>
