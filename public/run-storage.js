@@ -98,7 +98,7 @@ function fullDate(value) {
 function routeDistanceMeters(points) {
   let meters = 0;
   for (let i = 1; i < points.length; i += 1) {
-    meters += distanceMeters(points[i - 1], points[i]);
+    meters += usableSegmentMeters(points[i - 1], points[i]);
   }
   return meters;
 }
@@ -140,7 +140,7 @@ function mileSplits(points) {
   for (let i = 1; i < points.length; i += 1) {
     const previous = points[i - 1];
     const current = points[i];
-    const segmentMeters = distanceMeters(previous, current);
+    const segmentMeters = usableSegmentMeters(previous, current);
     const beforeMeters = totalMeters;
     const afterMeters = totalMeters + segmentMeters;
 

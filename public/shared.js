@@ -1,6 +1,8 @@
 const metersToMiles = (meters) => meters / 1609.344;
 const metersToFeet = (meters) => meters * 3.28084;
 const splitDistanceMiles = 1;
+const maxReliableAccuracyMeters = 65;
+const maxRunningSpeedMetersPerSecond = 8.5;
 
 function distanceMeters(a, b) {
   const earth = 6371000;
@@ -15,6 +17,26 @@ function distanceMeters(a, b) {
   return 2 * earth * Math.asin(Math.sqrt(h));
 }
 
+function segmentSeconds(a, b) {
+  return Math.max(0, ((b?.at || 0) - (a?.at || 0)) / 1000);
+}
+
+function usableSegmentMeters(a, b) {
+  const meters = distanceMeters(a, b);
+  if (!Number.isFinite(meters) || meters < 1) return 0;
+
+  const seconds = segmentSeconds(a, b);
+  if (seconds <= 0) return 0;
+
+  const accuracy = Math.max(Number(a.accuracy || 0), Number(b.accuracy || 0));
+  const speed = meters / Math.max(1, seconds);
+
+  if (accuracy > maxReliableAccuracyMeters && meters < accuracy) return 0;
+  if (speed > maxRunningSpeedMetersPerSecond && meters > 25) return 0;
+
+  return meters;
+}
+
 function sessionStats(points, startedAt, elapsedSeconds) {
   let meters = 0;
   let elevationMeters = 0;
@@ -23,7 +45,7 @@ function sessionStats(points, startedAt, elapsedSeconds) {
   let nextSplitBoundaryMeters = 1609.344;
 
   for (let i = 1; i < points.length; i += 1) {
-    const segmentMeters = distanceMeters(points[i - 1], points[i]);
+    const segmentMeters = usableSegmentMeters(points[i - 1], points[i]);
     const beforeMeters = meters;
     const afterMeters = meters + segmentMeters;
 
@@ -88,7 +110,7 @@ function effortSplitStats(points, effortSplit) {
   let meters = 0;
 
   for (let i = 1; i < splitPoints.length; i += 1) {
-    meters += distanceMeters(splitPoints[i - 1], splitPoints[i]);
+    meters += usableSegmentMeters(splitPoints[i - 1], splitPoints[i]);
   }
 
   const elapsedSeconds = Math.max(

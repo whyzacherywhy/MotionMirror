@@ -127,7 +127,7 @@ function recentGrade(points) {
   const previous = points.at(-2);
   if (!last || !previous) return "--";
   if (!Number.isFinite(last.altitude) || !Number.isFinite(previous.altitude)) return "--";
-  return (((last.altitude - previous.altitude) / Math.max(1, distanceMeters(previous, last))) * 100).toFixed(1);
+  return (((last.altitude - previous.altitude) / Math.max(1, usableSegmentMeters(previous, last))) * 100).toFixed(1);
 }
 
 function currentGainFeet(points) {
@@ -162,7 +162,7 @@ function splitMileSegments(points) {
   for (let i = 1; i < points.length; i += 1) {
     const previous = points[i - 1];
     const current = points[i];
-    const segmentMeters = distanceMeters(previous, current);
+    const segmentMeters = usableSegmentMeters(previous, current);
     const beforeMeters = totalMeters;
     const afterMeters = totalMeters + segmentMeters;
 
