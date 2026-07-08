@@ -9,6 +9,7 @@ let startedAt = null;
 let elapsedMs = 0;
 let trackingStartedAt = null;
 let isTracking = false;
+let isLockingGps = false;
 let coachConnected = false;
 
 const el = {
@@ -33,7 +34,7 @@ const el = {
 function updateStatusBadges() {
   el.coachConnection.textContent = coachConnected ? "Coach connected" : "Coach disconnected";
   el.coachConnection.classList.toggle("is-connected", coachConnected);
-  el.trackingStatus.textContent = isTracking ? "Tracking" : "Tracking off";
+  el.trackingStatus.textContent = isLockingGps ? "Locking GPS" : isTracking ? "Tracking" : "Tracking off";
   el.trackingStatus.classList.toggle("is-tracking", isTracking);
 }
 
@@ -44,10 +45,12 @@ function activeElapsedSeconds() {
   return elapsedMs / 1000;
 }
 
-function beginLocalTracking() {
-  if (!startedAt) startedAt = Date.now();
-  if (!trackingStartedAt) trackingStartedAt = Date.now();
+function beginLocalTracking(startedAtMs = Date.now()) {
+  if (!startedAt) startedAt = startedAtMs;
+  if (!trackingStartedAt) trackingStartedAt = startedAtMs;
+  isLockingGps = false;
   isTracking = true;
+  el.start.disabled = false;
   updateStatusBadges();
 }
 
@@ -57,6 +60,8 @@ function freezeLocalTracking() {
   }
   trackingStartedAt = null;
   isTracking = false;
+  isLockingGps = false;
+  el.start.disabled = false;
   updateStatusBadges();
 }
 
@@ -80,6 +85,8 @@ function resetLocalSession() {
   elapsedMs = 0;
   trackingStartedAt = null;
   isTracking = false;
+  isLockingGps = false;
+  el.start.disabled = false;
   if (pathLine) pathLine.setLatLngs([]);
   if (marker && map) {
     map.removeLayer(marker);
@@ -116,7 +123,8 @@ function drawPoint(point) {
 }
 
 async function sendPoint(point) {
-  beginLocalTracking();
+  const pointAt = point.at || Date.now();
+  beginLocalTracking(pointAt);
   drawPoint(point);
   await fetch("/api/location", {
     method: "POST",
@@ -129,32 +137,55 @@ async function sendPoint(point) {
   });
 }
 
-function startGps() {
-  if (!navigator.geolocation) {
-    el.trackingStatus.textContent = "GPS unavailable";
-    return;
-  }
-  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-  el.trackingStatus.textContent = "Requesting GPS";
+function pointFromPosition(position) {
+  const { latitude, longitude, accuracy, altitude, speed, heading } = position.coords;
+  return {
+    lat: latitude,
+    lng: longitude,
+    accuracy,
+    altitude,
+    speed,
+    heading,
+    at: Date.now(),
+  };
+}
+
+function startWatchingGps() {
   watchId = navigator.geolocation.watchPosition(
     (position) => {
-      beginLocalTracking();
-      const { latitude, longitude, accuracy, altitude, speed, heading } = position.coords;
-      sendPoint({
-        lat: latitude,
-        lng: longitude,
-        accuracy,
-        altitude,
-        speed,
-        heading,
-      });
+      sendPoint(pointFromPosition(position));
     },
     () => {
       freezeLocalTracking();
       el.trackingStatus.textContent = "GPS blocked";
       el.trackingStatus.classList.remove("is-tracking");
     },
-    { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+  );
+}
+
+function startGps() {
+  if (!navigator.geolocation) {
+    el.trackingStatus.textContent = "GPS unavailable";
+    return;
+  }
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  isLockingGps = true;
+  el.start.disabled = true;
+  updateStatusBadges();
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      sendPoint(pointFromPosition(position));
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      startWatchingGps();
+    },
+    () => {
+      isLockingGps = false;
+      el.start.disabled = false;
+      el.trackingStatus.textContent = "GPS blocked";
+      el.trackingStatus.classList.remove("is-tracking");
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
   );
 }
 
