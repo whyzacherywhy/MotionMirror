@@ -3,6 +3,7 @@ const metersToFeet = (meters) => meters * 3.28084;
 const splitDistanceMiles = 1;
 const maxReliableAccuracyMeters = 65;
 const maxRunningSpeedMetersPerSecond = 8.5;
+const minElevationChangeFeet = 6;
 
 function distanceMeters(a, b) {
   const earth = 6371000;
@@ -37,6 +38,16 @@ function usableSegmentMeters(a, b) {
   return meters;
 }
 
+function usableElevationDeltaMeters(a, b) {
+  if (!Number.isFinite(a?.altitude) || !Number.isFinite(b?.altitude)) return 0;
+  if (usableSegmentMeters(a, b) <= 0) return 0;
+
+  const deltaMeters = b.altitude - a.altitude;
+  if (Math.abs(metersToFeet(deltaMeters)) < minElevationChangeFeet) return 0;
+
+  return deltaMeters;
+}
+
 function sessionStats(points, startedAt, elapsedSeconds) {
   let meters = 0;
   let elevationMeters = 0;
@@ -58,11 +69,7 @@ function sessionStats(points, startedAt, elapsedSeconds) {
     }
 
     meters = afterMeters;
-    const prevAlt = points[i - 1].altitude;
-    const nextAlt = points[i].altitude;
-    if (Number.isFinite(prevAlt) && Number.isFinite(nextAlt)) {
-      elevationMeters += Math.max(0, nextAlt - prevAlt);
-    }
+    elevationMeters += Math.max(0, usableElevationDeltaMeters(points[i - 1], points[i]));
   }
 
   const referenceTime =

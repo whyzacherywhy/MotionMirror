@@ -107,10 +107,7 @@ function elevationChangeFeet(points) {
   let gain = 0;
   let loss = 0;
   for (let i = 1; i < points.length; i += 1) {
-    const previous = points[i - 1].altitude;
-    const current = points[i].altitude;
-    if (!Number.isFinite(previous) || !Number.isFinite(current)) continue;
-    const change = metersToFeet(current - previous);
+    const change = metersToFeet(usableElevationDeltaMeters(points[i - 1], points[i]));
     if (change >= 0) gain += change;
     else loss += Math.abs(change);
   }
@@ -133,6 +130,7 @@ function mileSplits(points) {
   if (points.length < 2) return [];
   const segments = [];
   let mileStart = points[0];
+  let mileStartMeters = 0;
   let totalMeters = 0;
   let boundaryMeters = 1609.344;
   let number = 1;
@@ -154,17 +152,45 @@ function mileSplits(points) {
           : null;
       segments.push({
         number,
+        label: `Mile ${number}`,
+        distanceMeters: 1609.344,
+        distanceMiles: 1,
+        isPartial: false,
         endedAt: mileEnd.at,
         seconds,
         pace: seconds > 0 ? seconds / 60 : 0,
         elevationFeet,
       });
       mileStart = mileEnd;
+      mileStartMeters = boundaryMeters;
       boundaryMeters += 1609.344;
       number += 1;
     }
 
     totalMeters = afterMeters;
+  }
+
+  const finalDistanceMeters = totalMeters - mileStartMeters;
+  if (finalDistanceMeters >= 25) {
+    const finalPoint = points.at(-1);
+    const finalDistanceMiles = metersToMiles(finalDistanceMeters);
+    const seconds = Math.max(0, ((finalPoint.at || 0) - (mileStart.at || 0)) / 1000);
+    const elevationFeet =
+      Number.isFinite(mileStart.altitude) && Number.isFinite(finalPoint.altitude)
+        ? metersToFeet(finalPoint.altitude - mileStart.altitude)
+        : null;
+
+    segments.push({
+      number,
+      label: `Final ${finalDistanceMiles.toFixed(2)} mi`,
+      distanceMeters: finalDistanceMeters,
+      distanceMiles: finalDistanceMiles,
+      isPartial: true,
+      endedAt: finalPoint.at,
+      seconds,
+      pace: finalDistanceMiles > 0.02 ? seconds / 60 / finalDistanceMiles : 0,
+      elevationFeet,
+    });
   }
 
   return segments;
@@ -195,7 +221,7 @@ function buildHistoryRows(session, summary) {
   for (const mile of summary.mileSplits) {
     rows.push({
       at: mile.endedAt || session.startedAt,
-      text: `Mile ${mile.number}: ${formatDuration(mile.seconds)} · ${formatPace(mile.pace)} · elev ${signedFeet(mile.elevationFeet)}`,
+      text: `${mile.label || `Mile ${mile.number}`}: ${formatDuration(mile.seconds)} · ${formatPace(mile.pace)} · elev ${signedFeet(mile.elevationFeet)}`,
     });
   }
   for (const cue of session.cues || []) {

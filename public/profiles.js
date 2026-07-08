@@ -243,13 +243,19 @@ function renderSavedMap(run) {
 
 function renderMileTable(run) {
   const table = document.querySelector("#mileTable");
-  table.append(tableRow(["Mile", "Pace", "Elev"], true));
+  table.append(tableRow(["Segment", "Pace", "Elev"], true));
   if (!run.mileSplits?.length) {
-    table.append(tableRow(["--", "No completed miles", "--"]));
+    table.append(tableRow(["--", "No mile data", "--"]));
     return;
   }
   for (const mile of run.mileSplits) {
-    table.append(tableRow([mile.number, formatPace(mile.pace), signedFeet(mile.elevationFeet)]));
+    table.append(
+      tableRow([
+        mile.label || `Mile ${mile.number}`,
+        formatPace(mile.pace),
+        signedFeet(mile.elevationFeet),
+      ]),
+    );
   }
 }
 
