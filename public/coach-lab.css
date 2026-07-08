@@ -288,6 +288,66 @@ p {
   text-align: right;
 }
 
+.coach-split-panel {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 14px;
+}
+
+.coach-split-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.coach-split-head strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.1rem;
+}
+
+.coach-split-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.coach-split-grid > div {
+  min-height: 68px;
+  padding: 11px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.coach-split-grid > div:nth-child(2n) {
+  border-right: 0;
+}
+
+.coach-split-grid > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.coach-split-grid span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.coach-split-grid strong {
+  font-size: 1.22rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .cue-card {
   margin-top: 14px;
   padding: 14px;

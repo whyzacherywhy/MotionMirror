@@ -84,6 +84,7 @@ function sessionStats(points, startedAt, elapsedSeconds) {
   const splitPace = currentSplitMiles > 0.02 ? splitElapsedMinutes / currentSplitMiles : 0;
 
   return {
+    meters,
     miles,
     elevationFeet: metersToFeet(elevationMeters),
     averagePace,
@@ -97,6 +98,7 @@ function sessionStats(points, startedAt, elapsedSeconds) {
 function effortSplitStats(points, effortSplit) {
   if (!effortSplit?.startedAt) {
     return {
+      meters: 0,
       miles: 0,
       pace: 0,
       elapsedSeconds: 0,
@@ -123,6 +125,7 @@ function effortSplitStats(points, effortSplit) {
   const miles = metersToMiles(meters);
 
   return {
+    meters,
     miles,
     pace: miles > 0.02 ? elapsedMinutes / miles : 0,
     elapsedSeconds,

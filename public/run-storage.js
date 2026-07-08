@@ -221,18 +221,32 @@ function buildRunSummary(session, weather) {
   const elapsedSeconds = (session.elapsedMs || 0) / 1000 || Math.max(0, ((points.at(-1)?.at || Date.now()) - (session.startedAt || points[0]?.at || Date.now())) / 1000);
   const stats = sessionStats(points, session.startedAt || points[0]?.at, elapsedSeconds);
   const elevation = elevationChangeFeet(points);
-  const coachSplits = (session.effortSplits || []).map((split) => {
-    const splitStats = effortSplitStats(points, split);
-    return {
-      number: split.number,
-      startedAt: split.startedAt,
-      endedAt: split.endedAt,
-      elapsedSeconds: splitStats.elapsedSeconds,
-      distanceMiles: splitStats.miles,
-      pace: splitStats.pace,
-      elevationFeet: splitElevationFeet(points, split),
-    };
-  });
+  const splitRecords = [...(session.effortSplits || [])];
+  if (session.effortSplit?.startedAt) {
+    const activeSplitStats = effortSplitStats(points, session.effortSplit);
+    const alreadyCompleted = splitRecords.some((split) => split.number === session.effortSplit.number);
+    if (!alreadyCompleted && activeSplitStats.elapsedSeconds > 0) {
+      splitRecords.push({
+        ...session.effortSplit,
+        endedAt: session.effortSplit.endedAt || session.endedAt || points.at(-1)?.at || Date.now(),
+      });
+    }
+  }
+  const coachSplits = splitRecords
+    .sort((a, b) => a.number - b.number)
+    .map((split) => {
+      const splitStats = effortSplitStats(points, split);
+      return {
+        number: split.number,
+        startedAt: split.startedAt,
+        endedAt: split.endedAt,
+        elapsedSeconds: splitStats.elapsedSeconds,
+        distanceMeters: splitStats.meters,
+        distanceMiles: splitStats.miles,
+        pace: splitStats.pace,
+        elevationFeet: splitElevationFeet(points, split),
+      };
+    });
   const miles = mileSplits(points);
   const summary = {
     id: runId(),

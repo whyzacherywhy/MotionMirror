@@ -84,6 +84,17 @@ function startTracking(session, now = Date.now()) {
   session.status = "live";
 }
 
+function startCoachSplit(session, now = Date.now()) {
+  if (session.effortSplit) return;
+  session.effortSplit = {
+    number: (session.effortSplits || []).length + 1,
+    startedAt: now,
+    startedPointIndex: session.points.length,
+    elapsedMs: 0,
+    trackingStartedAt: session.status === "live" ? now : null,
+  };
+}
+
 function elapsedMs(session, now = Date.now()) {
   if (session.status === "live" && session.trackingStartedAt) {
     return (session.elapsedMs || 0) + now - session.trackingStartedAt;
@@ -271,6 +282,7 @@ const server = http.createServer(async (req, res) => {
         recordEvent(session, "resume", point.at);
       }
       startTracking(session, point.at);
+      startCoachSplit(session, point.at);
       session.lastPoint = point;
       session.points.push(point);
       if (session.points.length > 2000) session.points.shift();
@@ -296,8 +308,19 @@ const server = http.createServer(async (req, res) => {
       const now = Date.now();
       finalizeTracking(session, now);
       const events = [...(session.events || []), { type: "stop", at: now }].slice(-80);
+      const endedSession = serializeSession({
+        ...session,
+        events,
+        status: "stopped",
+        lastPoint: session.lastPoint,
+        points: [...(session.points || [])],
+        cues: [...(session.cues || [])],
+        effortSplits: [...(session.effortSplits || [])],
+        effortSplit: session.effortSplit ? { ...session.effortSplit, endedAt: now } : null,
+      });
       resetSession(session);
       session.events = events;
+      broadcastCoach("ended-session", endedSession);
       broadcastCoach("session", serializeSession(session));
       broadcastRunner(session.id, "reset", serializeSession(session));
       return json(res, 200, { ok: true, session: serializeSession(session) });

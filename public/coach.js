@@ -49,6 +49,7 @@ const el = {
   effortTitle: document.querySelector("#effortTitle"),
   effortPace: document.querySelector("#effortPace"),
   effortDistance: document.querySelector("#effortDistance"),
+  effortMeters: document.querySelector("#effortMeters"),
   effortElapsed: document.querySelector("#effortElapsed"),
   startEffortSplit: document.querySelector("#startEffortSplit"),
   latestCue: document.querySelector("#latestCue"),
@@ -111,6 +112,40 @@ function sessionElapsedSeconds(session) {
     return baseSeconds + (Date.now() - session.receivedAt) / 1000;
   }
   return baseSeconds;
+}
+
+function activeCoachSplit(session) {
+  if (session.effortSplit) return session.effortSplit;
+  const startedAt = session.startedAt || session.points?.[0]?.at;
+  if (!startedAt) return null;
+  return {
+    number: (session.effortSplits || []).length + 1,
+    startedAt,
+    startedPointIndex: 0,
+    elapsedMs: session.elapsedMs || 0,
+    trackingStartedAt: session.status === "live" && session.trackingStartedAt ? session.trackingStartedAt : null,
+  };
+}
+
+function liveCoachSplit(session) {
+  const split = activeCoachSplit(session);
+  if (!split) return null;
+  if (session.status === "live" && split.trackingStartedAt && session.receivedAt) {
+    return {
+      ...split,
+      elapsedMs: (split.elapsedMs || 0) + Date.now() - session.receivedAt,
+    };
+  }
+  return split;
+}
+
+function snapshotForSave(session) {
+  const snapshot = JSON.parse(JSON.stringify(session));
+  snapshot.elapsedMs = Math.round(sessionElapsedSeconds(session) * 1000);
+  const split = liveCoachSplit(session);
+  snapshot.effortSplit = split ? { ...split, elapsedMs: Math.round(split.elapsedMs || 0) } : null;
+  delete snapshot.receivedAt;
+  return snapshot;
 }
 
 function initials(name) {
@@ -271,11 +306,13 @@ function drawSession(session) {
   activeSession = { ...session, receivedAt: Date.now() };
   const points = session.points || [];
   if (points.length > 1 && session.startedAt) {
-    lastSaveableSession = JSON.parse(JSON.stringify(session));
+    lastSaveableSession = snapshotForSave(activeSession);
     saveRunDraft(sessionId, lastSaveableSession);
   }
-  const stats = sessionStats(points, session.startedAt, sessionElapsedSeconds(activeSession));
-  const effort = effortSplitStats(points, session.effortSplit);
+  const elapsedSeconds = sessionElapsedSeconds(activeSession);
+  const stats = sessionStats(points, session.startedAt, elapsedSeconds);
+  const currentCoachSplit = liveCoachSplit(activeSession);
+  const effort = effortSplitStats(points, currentCoachSplit);
   const last = session.lastPoint;
   const grade = recentGrade(points);
   const name = session.runnerName || "Runner";
@@ -284,8 +321,8 @@ function drawSession(session) {
   el.runnerName.textContent = name;
   el.runnerAvatar.textContent = initials(name);
   el.statusPill.textContent = session.status === "live" ? "LIVE" : (session.status || "IDLE").toUpperCase();
-  el.runTime.textContent = formatDuration(sessionElapsedSeconds(session));
-  el.runTimeMonitor.textContent = formatDuration(sessionElapsedSeconds(session));
+  el.runTime.textContent = formatDuration(elapsedSeconds);
+  el.runTimeMonitor.textContent = formatDuration(elapsedSeconds);
   el.distance.textContent = `${stats.miles.toFixed(2)} mi`;
   el.splitPace.textContent = formatPace(stats.splitPace);
   el.averagePace.textContent = formatPace(stats.averagePace);
@@ -296,11 +333,12 @@ function drawSession(session) {
   el.updatedAt.textContent = last ? formatTime(last.at) : "waiting";
   el.currentSplit.textContent = formatPace(stats.splitPace);
   el.currentGain.textContent = `+${Math.round(currentGainFeet(points))} ft`;
-  el.effortTitle.textContent = session.effortSplit
-    ? `Split ${session.effortSplit.number} measuring`
-    : "No active split";
+  el.effortTitle.textContent = currentCoachSplit
+    ? `Split ${currentCoachSplit.number} measuring`
+    : "Waiting for runner";
   el.effortPace.textContent = formatPace(effort.pace);
   el.effortDistance.textContent = `${effort.miles.toFixed(2)} mi`;
+  el.effortMeters.textContent = `${Math.round(effort.meters)} m`;
   el.effortElapsed.textContent = formatDuration(effort.elapsedSeconds);
   el.heading.textContent = last?.heading ? `${Math.round(last.heading)} deg` : "--";
   el.mapReadout.textContent = last
@@ -375,6 +413,10 @@ function populateProfileSelect() {
 }
 
 function openSaveModal() {
+  if (activeSession?.points?.length) {
+    lastSaveableSession = snapshotForSave(activeSession);
+    saveRunDraft(sessionId, lastSaveableSession);
+  }
   lastSaveableSession ||= loadRunDraft(sessionId);
   if (!lastSaveableSession?.points?.length) {
     el.saveStatus.textContent = "No route data has been recorded yet.";
@@ -391,6 +433,10 @@ function closeSaveModal() {
 }
 
 async function createSavedRun() {
+  if (activeSession?.points?.length) {
+    lastSaveableSession = snapshotForSave(activeSession);
+    saveRunDraft(sessionId, lastSaveableSession);
+  }
   const session = lastSaveableSession || loadRunDraft(sessionId);
   if (!session?.points?.length) throw new Error("No run data to save yet.");
   el.saveStatus.textContent = "Saving route and weather...";
@@ -492,18 +538,23 @@ setInterval(() => {
 
 setInterval(() => {
   if (!activeSession) return;
-  el.runTime.textContent = formatDuration(sessionElapsedSeconds(activeSession));
-  el.runTimeMonitor.textContent = formatDuration(sessionElapsedSeconds(activeSession));
-  const liveEffortSplit =
-    activeSession.status === "live" && activeSession.effortSplit?.trackingStartedAt
-      ? {
-          ...activeSession.effortSplit,
-          elapsedMs:
-            (activeSession.effortSplit.elapsedMs || 0) + Date.now() - activeSession.receivedAt,
-        }
-      : activeSession.effortSplit;
+  const elapsedSeconds = sessionElapsedSeconds(activeSession);
+  el.runTime.textContent = formatDuration(elapsedSeconds);
+  el.runTimeMonitor.textContent = formatDuration(elapsedSeconds);
+  const liveEffortSplit = liveCoachSplit(activeSession);
   const effort = effortSplitStats(activeSession.points || [], liveEffortSplit);
+  const stats = sessionStats(activeSession.points || [], activeSession.startedAt, elapsedSeconds);
+  el.distance.textContent = `${stats.miles.toFixed(2)} mi`;
+  el.averagePace.textContent = formatPace(stats.averagePace);
   el.effortElapsed.textContent = formatDuration(effort.elapsedSeconds);
+  el.effortMeters.textContent = `${Math.round(effort.meters)} m`;
+  el.effortDistance.textContent = `${effort.miles.toFixed(2)} mi`;
+  el.effortPace.textContent = formatPace(effort.pace);
+  el.effortTitle.textContent = liveEffortSplit ? `Split ${liveEffortSplit.number} measuring` : "Waiting for runner";
+  if (activeSession.points?.length > 1 && activeSession.startedAt) {
+    lastSaveableSession = snapshotForSave(activeSession);
+    saveRunDraft(sessionId, lastSaveableSession);
+  }
   renderHistory({ ...activeSession, effortSplit: liveEffortSplit }, activeSession.points || [], effort);
   updateConnectionUi(activeSession);
 }, 1000);
@@ -516,6 +567,12 @@ events.addEventListener("snapshot", (event) => {
 events.addEventListener("session", (event) => {
   const session = JSON.parse(event.data);
   if (session.id === sessionId) drawSession(session);
+});
+events.addEventListener("ended-session", (event) => {
+  const session = JSON.parse(event.data);
+  if (session.id !== sessionId) return;
+  lastSaveableSession = snapshotForSave({ ...session, receivedAt: Date.now() });
+  saveRunDraft(sessionId, lastSaveableSession);
 });
 events.addEventListener("presence", (event) => {
   const presence = JSON.parse(event.data);

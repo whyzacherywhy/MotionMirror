@@ -72,15 +72,33 @@
               <strong id="currentSplit">--</strong>
               <em id="currentGain">+0 ft</em>
             </div>
-            <div>
-              <span>Coach split</span>
-              <strong id="effortPace">--</strong>
-              <em id="effortDistance">0.00 mi</em>
+          </section>
+
+          <section class="coach-split-panel">
+            <div class="coach-split-head">
+              <div>
+                <p>Current coach split</p>
+                <strong id="effortTitle">Split 1 ready</strong>
+              </div>
+              <button id="startEffortSplit" class="primary">Split</button>
             </div>
-            <div>
-              <span id="effortTitle">No active effort</span>
-              <strong id="effortElapsed">0:00</strong>
-              <em>elapsed</em>
+            <div class="coach-split-grid">
+              <div>
+                <span>Time</span>
+                <strong id="effortElapsed">0:00</strong>
+              </div>
+              <div>
+                <span>Meters</span>
+                <strong id="effortMeters">0 m</strong>
+              </div>
+              <div>
+                <span>Miles</span>
+                <strong id="effortDistance">0.00 mi</strong>
+              </div>
+              <div>
+                <span>Pace</span>
+                <strong id="effortPace">--</strong>
+              </div>
             </div>
           </section>
 
@@ -90,7 +108,6 @@
                 <p>Coach note</p>
                 <strong id="latestCue">No notes yet</strong>
               </div>
-              <button id="startEffortSplit" class="primary">Split</button>
             </div>
 
             <form id="cueForm" class="cue-form">
