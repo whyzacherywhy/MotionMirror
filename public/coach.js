@@ -355,7 +355,7 @@ function drawSession(session) {
   el.runnerAvatar.textContent = initials(name);
   el.statusPill.textContent = session.status === "live" ? "LIVE" : (session.status || "IDLE").toUpperCase();
   el.runTime.textContent = formatDuration(elapsedSeconds);
-  el.distance.textContent = `${stats.miles.toFixed(2)} mi`;
+  el.distance.textContent = stats.miles.toFixed(2);
   el.splitPace.textContent = formatPace(stats.splitPace);
   el.averagePace.textContent = formatPace(stats.averagePace);
   el.splitProgress.textContent = `Mile ${stats.splitNumber} · ${stats.currentSplitMiles.toFixed(2)}/${stats.splitDistanceMiles} mi`;
@@ -610,7 +610,7 @@ setInterval(() => {
   const liveEffortSplit = displayedCoachSplit(activeSession);
   const effort = effortSplitStats(activeSession.points || [], liveEffortSplit);
   const stats = sessionStats(activeSession.points || [], activeSession.startedAt, elapsedSeconds);
-  el.distance.textContent = `${stats.miles.toFixed(2)} mi`;
+  el.distance.textContent = stats.miles.toFixed(2);
   el.averagePace.textContent = formatPace(stats.averagePace);
   el.elevation.textContent = `+${Math.round(stats.elevationGainFeet)} / -${Math.round(stats.elevationLossFeet)} ft`;
   el.effortElapsed.textContent = formatDuration(effort.elapsedSeconds);
