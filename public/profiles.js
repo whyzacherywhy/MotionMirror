@@ -101,6 +101,7 @@ function renderProfileOverview(profile) {
   const goalsInput = document.querySelector("#profileGoals");
   const coachNotesInput = document.querySelector("#profileCoachNotes");
   const saveButton = document.querySelector("#saveProfileInfo");
+  const deleteButton = document.querySelector("#deleteProfile");
   const profileFields = [nameInput, ageInput, locationInput, goalsInput, coachNotesInput];
   let isEditing = false;
 
@@ -142,6 +143,23 @@ function renderProfileOverview(profile) {
     setProfileEditing(false);
     saveButton.textContent = "Saved";
     setTimeout(() => (saveButton.textContent = "Edit profile"), 900);
+  });
+
+  deleteButton.addEventListener("click", async () => {
+    const confirmed = confirm(
+      `Delete ${profile.name}? This will delete the profile and all saved runs. This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    deleteButton.disabled = true;
+    deleteButton.textContent = "Deleting";
+    const deleted = await deleteRunnerProfile(profile.id);
+    if (deleted) {
+      location.href = "/profiles.html";
+      return;
+    }
+    deleteButton.disabled = false;
+    deleteButton.textContent = "Delete profile";
+    alert("Could not delete this profile.");
   });
 
   function setProfileEditing(nextValue) {

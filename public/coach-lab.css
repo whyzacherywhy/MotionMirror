@@ -875,6 +875,18 @@ p {
   margin-bottom: 10px;
 }
 
+.profile-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.danger-action {
+  border-color: rgba(255, 176, 166, 0.46);
+  color: #ffb0a6;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

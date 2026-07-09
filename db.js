@@ -281,6 +281,16 @@ export async function updateProfile(profileId, coachId, updates) {
   return profile;
 }
 
+export async function deleteProfile(profileId, coachId) {
+  const result = await query(
+    `delete from runner_profiles
+     where id = $1 and coach_id = $2
+     returning id`,
+    [profileId, coachId],
+  );
+  return Boolean(result.rows[0]);
+}
+
 export async function getRun(profileId, runId, coachId) {
   const result = await query(
     `select re.*

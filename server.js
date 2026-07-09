@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   createLiveSession,
   createProfile,
+  deleteProfile,
   deleteRun,
   findCoachByEmail,
   getCoachById,
@@ -452,6 +453,14 @@ const server = http.createServer(async (req, res) => {
       const profile = await updateProfile(profileMatch[1], coach.id, await readBody(req));
       if (!profile) return json(res, 404, { error: "Profile not found." });
       return json(res, 200, { profile });
+    }
+
+    if (profileMatch && req.method === "DELETE") {
+      if (!hasDatabase) return databaseUnavailable(res);
+      if (!coach) return authRequired(res);
+      const deleted = await deleteProfile(profileMatch[1], coach.id);
+      if (!deleted) return json(res, 404, { error: "Profile not found." });
+      return json(res, 200, { ok: true });
     }
 
     const profileRunCollectionMatch = url.pathname.match(/^\/api\/profiles\/([^/]+)\/runs$/);

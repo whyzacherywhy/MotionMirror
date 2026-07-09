@@ -107,6 +107,25 @@ function updateLocalRunnerProfile(profileIdValue, updates) {
   return profile;
 }
 
+async function deleteRunnerProfile(profileIdValue) {
+  try {
+    await apiJson(`/api/profiles/${encodeURIComponent(profileIdValue)}`, {
+      method: "DELETE",
+    });
+    return true;
+  } catch {
+    return deleteLocalRunnerProfile(profileIdValue);
+  }
+}
+
+function deleteLocalRunnerProfile(profileIdValue) {
+  const profiles = loadLocalProfiles();
+  const nextProfiles = profiles.filter((profile) => profile.id !== profileIdValue);
+  if (nextProfiles.length === profiles.length) return false;
+  saveLocalProfiles(nextProfiles);
+  return true;
+}
+
 async function saveRunToProfile(profileIdValue, run) {
   try {
     const payload = await apiJson(`/api/profiles/${encodeURIComponent(profileIdValue)}/runs`, {
