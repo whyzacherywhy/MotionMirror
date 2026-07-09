@@ -17,6 +17,7 @@ const el = {
   start: document.querySelector("#startBtn"),
   pause: document.querySelector("#pauseBtn"),
   stop: document.querySelector("#stopBtn"),
+  consent: document.querySelector("#trackingConsent"),
   mapToggle: document.querySelector("#mapToggle"),
   hideMap: document.querySelector("#hideMap"),
   mapPanel: document.querySelector("#runnerMapPanel"),
@@ -35,6 +36,7 @@ function updateStatusBadges() {
   el.coachConnection.classList.toggle("is-connected", coachConnected);
   el.trackingStatus.textContent = isLockingGps ? "Locking GPS" : isTracking ? "Tracking" : "Tracking off";
   el.trackingStatus.classList.toggle("is-tracking", isTracking);
+  el.start.disabled = !el.consent.checked || isLockingGps;
 }
 
 function activeElapsedSeconds() {
@@ -49,7 +51,6 @@ function beginLocalTracking(startedAtMs = Date.now()) {
   if (!trackingStartedAt) trackingStartedAt = startedAtMs;
   isLockingGps = false;
   isTracking = true;
-  el.start.disabled = false;
   updateStatusBadges();
 }
 
@@ -60,7 +61,6 @@ function freezeLocalTracking() {
   trackingStartedAt = null;
   isTracking = false;
   isLockingGps = false;
-  el.start.disabled = false;
   updateStatusBadges();
 }
 
@@ -85,7 +85,7 @@ function resetLocalSession() {
   trackingStartedAt = null;
   isTracking = false;
   isLockingGps = false;
-  el.start.disabled = false;
+  el.consent.checked = false;
   if (pathLine) pathLine.setLatLngs([]);
   if (marker && map) {
     map.removeLayer(marker);
@@ -170,13 +170,17 @@ function startWatchingGps() {
 }
 
 function startGps() {
+  if (!el.consent.checked) {
+    el.trackingStatus.textContent = "Consent needed";
+    el.trackingStatus.classList.remove("is-tracking");
+    return;
+  }
   if (!navigator.geolocation) {
     el.trackingStatus.textContent = "GPS unavailable";
     return;
   }
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   isLockingGps = true;
-  el.start.disabled = true;
   updateStatusBadges();
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -186,9 +190,9 @@ function startGps() {
     },
     () => {
       isLockingGps = false;
-      el.start.disabled = false;
       el.trackingStatus.textContent = "GPS blocked";
       el.trackingStatus.classList.remove("is-tracking");
+      updateStatusBadges();
     },
     { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
   );
@@ -244,6 +248,7 @@ function startDemo() {
 }
 
 el.start.addEventListener("click", startGps);
+el.consent.addEventListener("change", updateStatusBadges);
 el.pause.addEventListener("click", pauseRun);
 el.stop.addEventListener("click", stopRun);
 el.mapToggle.addEventListener("click", () => setMapVisible(el.mapPanel.classList.contains("is-hidden")));

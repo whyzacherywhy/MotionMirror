@@ -351,6 +351,11 @@ code {
   border-color: var(--runner-cyan);
 }
 
+.runner-page button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 .runner-page .primary {
   background: var(--runner-cyan);
   border-color: var(--runner-cyan);
@@ -480,6 +485,47 @@ code {
 .runner-actions button {
   min-height: 54px;
   font-size: 0.98rem;
+}
+
+.runner-consent,
+.runner-privacy {
+  border: 1px solid var(--runner-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.runner-consent label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: var(--runner-text);
+  font-size: 0.96rem;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.runner-consent input {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--runner-cyan);
+}
+
+.runner-consent p,
+.runner-privacy p {
+  margin-top: 8px;
+  color: var(--runner-muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.runner-privacy summary {
+  color: var(--runner-text);
+  cursor: pointer;
+  font-weight: 900;
 }
 
 .runner-secondary-actions {

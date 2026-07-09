@@ -36,6 +36,14 @@
           <button id="stopBtn">Stop</button>
         </div>
 
+        <section class="runner-consent">
+          <label>
+            <input id="trackingConsent" type="checkbox" />
+            <span>I agree to share my live location, route, distance, pace, time, and elevation with my coach for this session.</span>
+          </label>
+          <p>Tracking starts only after you tap Start run and your phone locks GPS. Tap Pause or Stop to stop sharing.</p>
+        </section>
+
         <div class="runner-secondary-actions">
           <label>
             Name
@@ -50,6 +58,11 @@
           <div><span>Avg pace</span><strong id="averagePace">--</strong></div>
           <div><span>Elevation</span><strong id="elevation">-- ft</strong></div>
         </div>
+
+        <details class="runner-privacy">
+          <summary>Privacy</summary>
+          <p>Your coach can see your live location while this session is tracking. If the coach saves the run, the route, splits, history, and summary data may be stored in CoachLink.</p>
+        </details>
 
       </section>
       <section class="runner-map is-hidden" id="runnerMapPanel">
