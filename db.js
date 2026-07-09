@@ -168,8 +168,8 @@ export async function suggestedCoach() {
 
 export async function createLiveSession({ id, coachId, runnerName = "Runner" }) {
   const result = await query(
-    `insert into live_sessions (id, coach_id, runner_name, status)
-     values ($1, $2, $3, 'idle')
+    `insert into live_sessions (id, coach_id, runner_name, mode, status)
+     values ($1, $2, $3, 'free', 'idle')
      returning *`,
     [id, coachId, runnerName],
   );
@@ -189,6 +189,7 @@ export async function updateLiveSessionStatus(id, updates = {}) {
          status = coalesce($3, status),
          started_at = coalesce($4, started_at),
          elapsed_ms = coalesce($5, elapsed_ms),
+         mode = coalesce($6, mode),
          updated_at = now()
      where id = $1
      returning *`,
@@ -198,6 +199,7 @@ export async function updateLiveSessionStatus(id, updates = {}) {
       updates.status ?? null,
       updates.startedAt ? isoDate(updates.startedAt) : null,
       Number.isFinite(updates.elapsedMs) ? Math.round(updates.elapsedMs) : null,
+      updates.mode ?? null,
     ],
   );
   return result.rows[0] || null;

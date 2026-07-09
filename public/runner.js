@@ -12,10 +12,12 @@ let isTracking = false;
 let isLockingGps = false;
 let coachConnected = false;
 let gpsRequestId = 0;
+let runMode = "free";
 
 const el = {
   name: document.querySelector("#runnerNameInput"),
   start: document.querySelector("#startBtn"),
+  trackMode: document.querySelector("#trackModeBtn"),
   pause: document.querySelector("#pauseBtn"),
   stop: document.querySelector("#stopBtn"),
   consent: document.querySelector("#trackingConsent"),
@@ -25,6 +27,7 @@ const el = {
   runTime: document.querySelector("#runTime"),
   distance: document.querySelector("#distance"),
   splitPace: document.querySelector("#splitPace"),
+  modeLabel: document.querySelector("#runnerModeLabel"),
   averagePace: document.querySelector("#averagePace"),
   splitProgress: document.querySelector("#splitProgress"),
   elevation: document.querySelector("#elevation"),
@@ -38,6 +41,9 @@ function updateStatusBadges() {
   el.trackingStatus.textContent = isLockingGps ? "Locking GPS" : isTracking ? "Tracking" : "Tracking off";
   el.trackingStatus.classList.toggle("is-tracking", isTracking);
   el.start.disabled = !el.consent.checked || isLockingGps;
+  el.trackMode.disabled = !el.consent.checked || isLockingGps;
+  document.body.classList.toggle("track-mode", runMode === "track");
+  el.modeLabel.textContent = runMode === "track" ? "Track mode pace" : "Free run pace";
 }
 
 function activeElapsedSeconds() {
@@ -86,6 +92,7 @@ function resetLocalSession() {
   trackingStartedAt = null;
   isTracking = false;
   isLockingGps = false;
+  runMode = "free";
   el.consent.checked = false;
   if (pathLine) pathLine.setLatLngs([]);
   if (marker && map) {
@@ -134,6 +141,7 @@ async function sendPoint(point, action = "track") {
       sessionId,
       runnerName: el.name.value.trim() || "Runner",
       action,
+      mode: runMode,
       ...point,
     }),
   });
@@ -142,6 +150,10 @@ async function sendPoint(point, action = "track") {
 function applySessionUpdate(session) {
   if (session?.runnerName && document.activeElement !== el.name) {
     el.name.value = session.runnerName;
+  }
+  if (session?.mode) {
+    runMode = session.mode;
+    updateStatusBadges();
   }
 }
 
@@ -173,7 +185,7 @@ function startWatchingGps(requestId) {
   );
 }
 
-function startGps() {
+function startGps(mode = runMode) {
   if (!el.consent.checked) {
     el.trackingStatus.textContent = "Consent needed";
     el.trackingStatus.classList.remove("is-tracking");
@@ -184,6 +196,7 @@ function startGps() {
     return;
   }
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  runMode = mode;
   isLockingGps = true;
   gpsRequestId += 1;
   const requestId = gpsRequestId;
@@ -256,7 +269,8 @@ function startDemo() {
   }, 1500);
 }
 
-el.start.addEventListener("click", startGps);
+el.start.addEventListener("click", () => startGps("free"));
+el.trackMode.addEventListener("click", () => startGps("track"));
 el.consent.addEventListener("change", updateStatusBadges);
 el.pause.addEventListener("click", pauseRun);
 el.stop.addEventListener("click", stopRun);

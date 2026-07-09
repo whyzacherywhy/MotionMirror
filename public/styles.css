@@ -337,8 +337,21 @@ code {
   --runner-cyan: #3de0cd;
   --runner-green: #8fe06b;
   --runner-red: #ef6d5f;
+  --runner-track: #ff3b30;
   background: var(--runner-bg);
   color: var(--runner-text);
+}
+
+.runner-page.track-mode {
+  --runner-bg: #120607;
+  --runner-panel: #1a0d0e;
+  --runner-panel-2: #251112;
+  --runner-line: #5b2426;
+  --runner-cyan: var(--runner-track);
+  --runner-green: #ffb199;
+  background:
+    radial-gradient(circle at 78% 8%, rgba(255, 59, 48, 0.18), transparent 34%),
+    var(--runner-bg);
 }
 
 .runner-page button {
@@ -478,13 +491,24 @@ code {
 
 .runner-actions {
   display: grid;
-  grid-template-columns: 1.35fr 0.8fr 0.9fr;
+  grid-template-columns: 1.2fr 1.2fr 0.8fr 0.9fr;
   gap: 8px;
 }
 
 .runner-actions button {
   min-height: 54px;
   font-size: 0.98rem;
+}
+
+.track-mode-button {
+  border-color: rgba(255, 59, 48, 0.65) !important;
+  background: rgba(255, 59, 48, 0.16) !important;
+  color: #ffd9d4 !important;
+}
+
+.track-mode-button:hover {
+  border-color: #ff3b30 !important;
+  color: #fff !important;
 }
 
 .runner-consent,
@@ -636,7 +660,7 @@ code {
   }
 
   .runner-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .runner-header {

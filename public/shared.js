@@ -144,6 +144,9 @@ function effortSplitStats(points, effortSplit) {
   for (let i = 1; i < splitPoints.length; i += 1) {
     meters += usableSegmentMeters(splitPoints[i - 1], splitPoints[i]);
   }
+  if (Number.isFinite(effortSplit.targetMeters) && effortSplit.targetMeters > 0) {
+    meters = effortSplit.targetMeters;
+  }
 
   const elapsedSeconds = Math.max(
     0,

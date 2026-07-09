@@ -25,6 +25,8 @@ let marker;
 let pathLine;
 let activeSession = { id: sessionId, points: [], cues: [], status: "idle" };
 let lastSaveableSession = loadRunDraft(sessionId);
+let selectedTrackMeters = 200;
+let holdEndedSession = false;
 
 const el = {
   runnerName: document.querySelector("#runnerName"),
@@ -52,6 +54,7 @@ const el = {
   effortMeters: document.querySelector("#effortMeters"),
   effortElapsed: document.querySelector("#effortElapsed"),
   startEffortSplit: document.querySelector("#startEffortSplit"),
+  trackRepControl: document.querySelector("#trackRepControl"),
   latestCue: document.querySelector("#latestCue"),
   cueForm: document.querySelector("#cueForm"),
   cueInput: document.querySelector("#cueInput"),
@@ -162,10 +165,20 @@ function liveCoachSplit(session) {
 function snapshotForSave(session) {
   const snapshot = JSON.parse(JSON.stringify(session));
   snapshot.elapsedMs = Math.round(sessionElapsedSeconds(session) * 1000);
-  const split = liveCoachSplit(session);
+  const split = displayedCoachSplit(session);
   snapshot.effortSplit = split ? { ...split, elapsedMs: Math.round(split.elapsedMs || 0) } : null;
   delete snapshot.receivedAt;
   return snapshot;
+}
+
+function displayedCoachSplit(session) {
+  const split = liveCoachSplit(session);
+  if (!split) return null;
+  if (session.mode !== "track") return split;
+  return {
+    ...split,
+    targetMeters: Number(split.targetMeters || selectedTrackMeters),
+  };
 }
 
 function initials(name) {
@@ -319,7 +332,10 @@ function renderHistory(session, points, effort) {
 }
 
 function drawSession(session) {
+  holdEndedSession = session.status === "stopped";
   activeSession = { ...session, receivedAt: Date.now() };
+  document.body.classList.toggle("track-mode", session.mode === "track");
+  el.trackRepControl.hidden = session.mode !== "track";
   const points = session.points || [];
   if (points.length > 1 && session.startedAt) {
     lastSaveableSession = snapshotForSave(activeSession);
@@ -327,7 +343,7 @@ function drawSession(session) {
   }
   const elapsedSeconds = sessionElapsedSeconds(activeSession);
   const stats = sessionStats(points, session.startedAt, elapsedSeconds);
-  const currentCoachSplit = liveCoachSplit(activeSession);
+  const currentCoachSplit = displayedCoachSplit(activeSession);
   const effort = effortSplitStats(points, currentCoachSplit);
   const last = session.lastPoint;
   const grade = recentGrade(points);
@@ -419,7 +435,10 @@ async function startEffortSplit() {
   const response = await fetch("/api/effort-split", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ sessionId }),
+    body: JSON.stringify({
+      sessionId,
+      targetMeters: activeSession.mode === "track" ? selectedTrackMeters : null,
+    }),
   });
   if (!response.ok) throw new Error("Effort split failed");
 }
@@ -533,6 +552,13 @@ el.cueForm.addEventListener("submit", async (event) => {
 
 el.runnerNameForm.addEventListener("submit", updateRunnerName);
 el.startEffortSplit.addEventListener("click", startEffortSplit);
+document.querySelectorAll("[data-track-meters]").forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedTrackMeters = Number(button.dataset.trackMeters);
+    document.querySelectorAll("[data-track-meters]").forEach((item) => item.classList.toggle("active", item === button));
+  });
+  button.classList.toggle("active", Number(button.dataset.trackMeters) === selectedTrackMeters);
+});
 el.saveRun.addEventListener("click", openSaveModal);
 el.closeSaveModal.addEventListener("click", closeSaveModal);
 el.saveModal.addEventListener("click", (event) => {
@@ -571,6 +597,7 @@ setInterval(() => {
     .then((response) => response.json())
     .then((sessions) => {
       const session = sessions.find((item) => item.id === sessionId);
+      if (holdEndedSession) return;
       if (session) drawSession(session);
     })
     .catch(() => {});
@@ -580,7 +607,7 @@ setInterval(() => {
   if (!activeSession) return;
   const elapsedSeconds = sessionElapsedSeconds(activeSession);
   el.runTime.textContent = formatDuration(elapsedSeconds);
-  const liveEffortSplit = liveCoachSplit(activeSession);
+  const liveEffortSplit = displayedCoachSplit(activeSession);
   const effort = effortSplitStats(activeSession.points || [], liveEffortSplit);
   const stats = sessionStats(activeSession.points || [], activeSession.startedAt, elapsedSeconds);
   el.distance.textContent = `${stats.miles.toFixed(2)} mi`;
@@ -613,6 +640,7 @@ events.addEventListener("ended-session", (event) => {
   if (session.id !== sessionId) return;
   lastSaveableSession = snapshotForSave({ ...session, receivedAt: Date.now() });
   saveRunDraft(sessionId, lastSaveableSession);
+  drawSession(session);
 });
 events.addEventListener("presence", (event) => {
   const presence = JSON.parse(event.data);

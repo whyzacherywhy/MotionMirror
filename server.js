@@ -127,6 +127,7 @@ function createSession(id, previous = {}) {
   return {
     id,
     coachId: previous.coachId || null,
+    mode: previous.mode || "free",
     runnerName: previous.runnerName || "Runner",
     runnerNameEditedByCoach: previous.runnerNameEditedByCoach || false,
     startedAt: previous.startedAt || null,
@@ -152,6 +153,7 @@ async function loadSession(id) {
     if (liveSession) {
       previous = {
         coachId: liveSession.coach_id,
+        mode: liveSession.mode || "free",
         runnerName: liveSession.runner_name,
         elapsedMs: liveSession.elapsed_ms,
         status: liveSession.status,
@@ -569,6 +571,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const action = ["start", "resume", "track"].includes(body.action) ? body.action : "track";
+      const mode = body.mode === "track" ? "track" : body.mode === "free" ? "free" : session.mode || "free";
       const previousStatus = session.status;
       const isFirstPoint = !session.startedAt;
 
@@ -579,6 +582,7 @@ const server = http.createServer(async (req, res) => {
       if (!session.runnerNameEditedByCoach) {
         session.runnerName = body.runnerName || session.runnerName;
       }
+      if (action === "start" || action === "resume") session.mode = mode;
       session.startedAt ||= point.at;
       if (isFirstPoint) {
         session.events = [];
@@ -591,6 +595,7 @@ const server = http.createServer(async (req, res) => {
       if (hasDatabase && session.coachId) {
         updateLiveSessionStatus(session.id, {
           runnerName: session.runnerName,
+          mode: session.mode,
           status: session.status,
           startedAt: session.startedAt,
           elapsedMs: elapsedMs(session, point.at),
@@ -661,7 +666,6 @@ const server = http.createServer(async (req, res) => {
         updateLiveSessionStatus(session.id, { status: "stopped", elapsedMs: endedSession.elapsedMs }).catch(() => {});
       }
       broadcastCoach("ended-session", endedSession);
-      broadcastCoach("session", serializeSession(session));
       broadcastRunner(session.id, "reset", serializeSession(session));
       return json(res, 200, { ok: true, session: serializeSession(session) });
     }
@@ -688,6 +692,7 @@ const server = http.createServer(async (req, res) => {
       const session = await getCoachSession(body.sessionId || "demo", coach);
       if (!session) return json(res, 404, { error: "Session not found." });
       const now = Date.now();
+      const targetMeters = Number(body.targetMeters || 0);
       const completedSplits = session.effortSplits || [];
       const current = session.effortSplit;
       const canCompleteFromStart = !current && (session.startedAt || session.points[0]?.at);
@@ -702,6 +707,7 @@ const server = http.createServer(async (req, res) => {
           startedPointIndex: current?.startedPointIndex || 0,
           endPointIndex: session.points.length,
           elapsedMs: elapsed,
+          targetMeters: Number.isFinite(targetMeters) && targetMeters > 0 ? targetMeters : current?.targetMeters || null,
         });
       }
 
@@ -712,6 +718,7 @@ const server = http.createServer(async (req, res) => {
         startedPointIndex: session.points.length,
         elapsedMs: 0,
         trackingStartedAt: session.status === "live" ? now : null,
+        targetMeters: Number.isFinite(targetMeters) && targetMeters > 0 ? targetMeters : null,
       };
 
       broadcastCoach("session", serializeSession(session));

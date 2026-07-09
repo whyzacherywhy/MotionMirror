@@ -91,6 +91,7 @@ create table if not exists live_sessions (
   id text primary key,
   coach_id uuid references coaches(id) on delete set null,
   runner_name text not null default 'Runner',
+  mode text not null default 'free',
   status text not null default 'idle',
   started_at timestamptz,
   elapsed_ms integer not null default 0,
@@ -108,3 +109,4 @@ alter table run_mile_splits add column if not exists distance_miles numeric(8, 3
 alter table run_mile_splits add column if not exists is_partial boolean not null default false;
 alter table run_coach_splits add column if not exists distance_meters numeric(10, 2) not null default 0;
 alter table coaches add column if not exists password_hash text;
+alter table live_sessions add column if not exists mode text not null default 'free';
