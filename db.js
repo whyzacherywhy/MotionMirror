@@ -166,6 +166,43 @@ export async function suggestedCoach() {
   return { email, displayName };
 }
 
+export async function createLiveSession({ id, coachId, runnerName = "Runner" }) {
+  const result = await query(
+    `insert into live_sessions (id, coach_id, runner_name, status)
+     values ($1, $2, $3, 'idle')
+     returning *`,
+    [id, coachId, runnerName],
+  );
+  return result.rows[0];
+}
+
+export async function getLiveSession(id) {
+  const result = await query("select * from live_sessions where id = $1 limit 1", [id]);
+  return result.rows[0] || null;
+}
+
+export async function updateLiveSessionStatus(id, updates = {}) {
+  if (!id) return null;
+  const result = await query(
+    `update live_sessions
+     set runner_name = coalesce($2, runner_name),
+         status = coalesce($3, status),
+         started_at = coalesce($4, started_at),
+         elapsed_ms = coalesce($5, elapsed_ms),
+         updated_at = now()
+     where id = $1
+     returning *`,
+    [
+      id,
+      updates.runnerName ?? null,
+      updates.status ?? null,
+      updates.startedAt ? isoDate(updates.startedAt) : null,
+      Number.isFinite(updates.elapsedMs) ? Math.round(updates.elapsedMs) : null,
+    ],
+  );
+  return result.rows[0] || null;
+}
+
 export async function listProfiles(coachId) {
   const profiles = await query(
     `select *

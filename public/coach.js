@@ -58,6 +58,7 @@ const el = {
   cueLog: document.querySelector("#cueLog"),
   runnerLink: document.querySelector("#runnerLink"),
   copyLink: document.querySelector("#copyLink"),
+  newSession: document.querySelector("#newSession"),
   saveRun: document.querySelector("#saveRun"),
   saveModal: document.querySelector("#saveModal"),
   closeSaveModal: document.querySelector("#closeSaveModal"),
@@ -550,6 +551,19 @@ el.copyLink.addEventListener("click", async () => {
   await navigator.clipboard.writeText(runnerUrl);
   el.copyLink.textContent = "Copied";
   setTimeout(() => (el.copyLink.textContent = "Copy"), 1200);
+});
+
+el.newSession.addEventListener("click", async () => {
+  el.newSession.disabled = true;
+  el.newSession.textContent = "Creating";
+  const response = await fetch("/api/live-sessions", { method: "POST" });
+  if (!response.ok) {
+    el.newSession.disabled = false;
+    el.newSession.textContent = "New session";
+    return;
+  }
+  const payload = await response.json();
+  location.href = payload.coachUrl;
 });
 
 fetch("/api/sessions")

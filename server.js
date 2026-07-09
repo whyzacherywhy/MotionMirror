@@ -4,10 +4,12 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  createLiveSession,
   createProfile,
   deleteRun,
   findCoachByEmail,
   getCoachById,
+  getLiveSession,
   getProfile,
   getRun,
   hasDatabase,
@@ -17,6 +19,7 @@ import {
   saveCoachLogin,
   setupRequired,
   suggestedCoach,
+  updateLiveSessionStatus,
   updateProfile,
   updateRunNotes,
 } from "./db.js";
@@ -122,9 +125,10 @@ function getSession(id) {
 function createSession(id, previous = {}) {
   return {
     id,
+    coachId: previous.coachId || null,
     runnerName: previous.runnerName || "Runner",
     runnerNameEditedByCoach: previous.runnerNameEditedByCoach || false,
-    startedAt: null,
+    startedAt: previous.startedAt || null,
     lastPoint: null,
     points: [],
     cues: [],
@@ -133,14 +137,46 @@ function createSession(id, previous = {}) {
     effortSplits: [],
     coachConnections: previous.coachConnections || 0,
     runnerConnections: previous.runnerConnections || 0,
-    elapsedMs: 0,
+    elapsedMs: previous.elapsedMs || 0,
     trackingStartedAt: null,
-    status: "idle",
+    status: previous.status || "idle",
   };
 }
 
+async function loadSession(id) {
+  if (sessions.has(id)) return sessions.get(id);
+  let previous = {};
+  if (hasDatabase) {
+    const liveSession = await getLiveSession(id);
+    if (liveSession) {
+      previous = {
+        coachId: liveSession.coach_id,
+        runnerName: liveSession.runner_name,
+        elapsedMs: liveSession.elapsed_ms,
+        status: liveSession.status,
+        startedAt: liveSession.started_at ? new Date(liveSession.started_at).getTime() : null,
+      };
+    }
+  }
+  const session = createSession(id, previous);
+  sessions.set(id, session);
+  return session;
+}
+
+async function getCoachSession(id, coach) {
+  const session = await loadSession(id || "demo");
+  if (hasDatabase && session.coachId !== coach?.id) return null;
+  return session;
+}
+
 function resetSession(session) {
-  const fresh = createSession(session.id, session);
+  const fresh = createSession(session.id, {
+    coachId: session.coachId,
+    runnerName: session.runnerName,
+    runnerNameEditedByCoach: session.runnerNameEditedByCoach,
+    coachConnections: session.coachConnections,
+    runnerConnections: session.runnerConnections,
+  });
   Object.keys(session).forEach((key) => delete session[key]);
   Object.assign(session, fresh);
   return session;
@@ -254,13 +290,15 @@ function broadcastPresence(session) {
   broadcastRunner(session.id, "presence", presence);
 }
 
-function snapshot() {
-  return [...sessions.values()].map((session) => ({
-    ...serializeSession(session),
+function snapshot(coachId = null) {
+  return [...sessions.values()]
+    .filter((session) => !coachId || session.coachId === coachId)
+    .map((session) => ({
+      ...serializeSession(session),
       points: session.points.slice(-500),
       cues: session.cues.slice(-20),
       events: (session.events || []).slice(-80),
-  }));
+    }));
 }
 
 async function readBody(req) {
@@ -285,6 +323,14 @@ function isProtectedPage(urlPath) {
     "/run",
     "/run.html",
   ].includes(urlPath);
+}
+
+async function createCoachLiveSession(coach) {
+  const id = `run-${randomBytes(9).toString("base64url")}`;
+  await createLiveSession({ id, coachId: coach.id });
+  const session = createSession(id, { coachId: coach.id });
+  sessions.set(id, session);
+  return session;
 }
 
 function safeFilePath(urlPath) {
@@ -362,7 +408,18 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/api/sessions") {
       if (hasDatabase && !coach) return authRequired(res);
-      return json(res, 200, snapshot());
+      return json(res, 200, snapshot(coach?.id || null));
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/live-sessions") {
+      if (!hasDatabase) return databaseUnavailable(res);
+      if (!coach) return authRequired(res);
+      const session = await createCoachLiveSession(coach);
+      return json(res, 201, {
+        session: serializeSession(session),
+        coachUrl: `/coach?session=${encodeURIComponent(session.id)}`,
+        runnerUrl: `/runner?session=${encodeURIComponent(session.id)}`,
+      });
     }
 
     if (req.method === "GET" && url.pathname === "/api/profiles") {
@@ -437,7 +494,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/events") {
       if (hasDatabase && !coach) return authRequired(res);
       const sessionId = url.searchParams.get("sessionId");
-      const session = sessionId ? getSession(sessionId) : null;
+      const session = sessionId ? await getCoachSession(sessionId, coach) : null;
+      if (sessionId && !session) return json(res, 404, { error: "Session not found." });
       res.writeHead(200, {
         "content-type": "text/event-stream",
         "cache-control": "no-cache",
@@ -449,7 +507,7 @@ const server = http.createServer(async (req, res) => {
         broadcastPresence(session);
       }
       keepAlive(res);
-      sendSse(res, "snapshot", snapshot());
+      sendSse(res, "snapshot", snapshot(coach?.id || null));
       req.on("close", () => {
         coachStreams.delete(res);
         if (session) {
@@ -462,7 +520,8 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname.startsWith("/api/runner-events/")) {
       const sessionId = url.pathname.split("/").pop();
-      const session = getSession(sessionId);
+      const session = await loadSession(sessionId);
+      if (hasDatabase && !session.coachId) return json(res, 404, { error: "Session not found." });
       res.writeHead(200, {
         "content-type": "text/event-stream",
         "cache-control": "no-cache",
@@ -484,7 +543,8 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/location") {
       const body = await readBody(req);
-      const session = getSession(body.sessionId || "demo");
+      const session = await loadSession(body.sessionId || "demo");
+      if (hasDatabase && !session.coachId) return json(res, 404, { error: "Session not found." });
       const point = {
         lat: Number(body.lat),
         lng: Number(body.lng),
@@ -514,6 +574,14 @@ const server = http.createServer(async (req, res) => {
       }
       startTracking(session, point.at);
       startCoachSplit(session, point.at);
+      if (hasDatabase && session.coachId) {
+        updateLiveSessionStatus(session.id, {
+          runnerName: session.runnerName,
+          status: session.status,
+          startedAt: session.startedAt,
+          elapsedMs: elapsedMs(session, point.at),
+        }).catch(() => {});
+      }
       session.lastPoint = point;
       session.points.push(point);
       if (session.points.length > 2000) session.points.shift();
@@ -525,12 +593,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/runner-name") {
       if (hasDatabase && !coach) return authRequired(res);
       const body = await readBody(req);
-      const session = getSession(body.sessionId || "demo");
+      const session = await getCoachSession(body.sessionId || "demo", coach);
+      if (!session) return json(res, 404, { error: "Session not found." });
       const runnerName = String(body.runnerName || "").trim().slice(0, 80);
       if (!runnerName) return json(res, 400, { error: "Runner name is required." });
 
       session.runnerName = runnerName;
       session.runnerNameEditedByCoach = true;
+      if (hasDatabase && session.coachId) {
+        updateLiveSessionStatus(session.id, { runnerName }).catch(() => {});
+      }
       const serialized = serializeSession(session);
       broadcastCoach("session", serialized);
       broadcastRunner(session.id, "session", serialized);
@@ -539,10 +611,14 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/pause") {
       const body = await readBody(req);
-      const session = getSession(body.sessionId || "demo");
+      const session = await loadSession(body.sessionId || "demo");
+      if (hasDatabase && !session.coachId) return json(res, 404, { error: "Session not found." });
       const now = Date.now();
       finalizeTracking(session, now);
       session.status = "paused";
+      if (hasDatabase && session.coachId) {
+        updateLiveSessionStatus(session.id, { status: session.status, elapsedMs: session.elapsedMs }).catch(() => {});
+      }
       recordEvent(session, "pause", now);
       broadcastCoach("session", serializeSession(session));
       return json(res, 200, { ok: true, session: serializeSession(session) });
@@ -550,7 +626,8 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && url.pathname === "/api/stop") {
       const body = await readBody(req);
-      const session = getSession(body.sessionId || "demo");
+      const session = await loadSession(body.sessionId || "demo");
+      if (hasDatabase && !session.coachId) return json(res, 404, { error: "Session not found." });
       const now = Date.now();
       finalizeTracking(session, now);
       const events = [...(session.events || []), { type: "stop", at: now }].slice(-80);
@@ -566,6 +643,9 @@ const server = http.createServer(async (req, res) => {
       });
       resetSession(session);
       session.events = events;
+      if (hasDatabase && session.coachId) {
+        updateLiveSessionStatus(session.id, { status: "stopped", elapsedMs: endedSession.elapsedMs }).catch(() => {});
+      }
       broadcastCoach("ended-session", endedSession);
       broadcastCoach("session", serializeSession(session));
       broadcastRunner(session.id, "reset", serializeSession(session));
@@ -575,7 +655,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/cue") {
       if (hasDatabase && !coach) return authRequired(res);
       const body = await readBody(req);
-      const session = getSession(body.sessionId || "demo");
+      const session = await getCoachSession(body.sessionId || "demo", coach);
+      if (!session) return json(res, 404, { error: "Session not found." });
       const cue = {
         text: String(body.text || "").trim().slice(0, 180),
         at: Date.now(),
@@ -590,7 +671,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/effort-split") {
       if (hasDatabase && !coach) return authRequired(res);
       const body = await readBody(req);
-      const session = getSession(body.sessionId || "demo");
+      const session = await getCoachSession(body.sessionId || "demo", coach);
+      if (!session) return json(res, 404, { error: "Session not found." });
       const now = Date.now();
       const completedSplits = session.effortSplits || [];
       const current = session.effortSplit;
@@ -624,6 +706,34 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && hasDatabase && isProtectedPage(url.pathname) && !coach) {
       res.writeHead(302, { location: `/login.html?next=${encodeURIComponent(url.pathname + url.search)}` });
+      res.end();
+      return;
+    }
+
+    if (
+      req.method === "GET" &&
+      hasDatabase &&
+      coach &&
+      (url.pathname === "/coach" || url.pathname === "/coach.html") &&
+      url.searchParams.get("session")
+    ) {
+      const liveSession = await getLiveSession(url.searchParams.get("session"));
+      if (!liveSession || liveSession.coach_id !== coach.id) {
+        res.writeHead(302, { location: "/coach" });
+        res.end();
+        return;
+      }
+    }
+
+    if (
+      req.method === "GET" &&
+      hasDatabase &&
+      coach &&
+      (url.pathname === "/coach" || url.pathname === "/coach.html") &&
+      !url.searchParams.get("session")
+    ) {
+      const session = await createCoachLiveSession(coach);
+      res.writeHead(302, { location: `/coach?session=${encodeURIComponent(session.id)}` });
       res.end();
       return;
     }
