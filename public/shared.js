@@ -3,7 +3,7 @@ const metersToFeet = (meters) => meters * 3.28084;
 const splitDistanceMiles = 1;
 const maxReliableAccuracyMeters = 65;
 const maxRunningSpeedMetersPerSecond = 8.5;
-const minElevationChangeFeet = 6;
+const minElevationChangeFeet = 3;
 
 function distanceMeters(a, b) {
   const earth = 6371000;
@@ -48,9 +48,24 @@ function usableElevationDeltaMeters(a, b) {
   return deltaMeters;
 }
 
+function elevationGainLossFeet(points) {
+  let gainMeters = 0;
+  let lossMeters = 0;
+
+  for (let i = 1; i < points.length; i += 1) {
+    const delta = usableElevationDeltaMeters(points[i - 1], points[i]);
+    if (delta > 0) gainMeters += delta;
+    else if (delta < 0) lossMeters += Math.abs(delta);
+  }
+
+  return {
+    gain: metersToFeet(gainMeters),
+    loss: metersToFeet(lossMeters),
+  };
+}
+
 function sessionStats(points, startedAt, elapsedSeconds) {
   let meters = 0;
-  let elevationMeters = 0;
   let splitStartAt = startedAt || points[0]?.at || 0;
   let currentSplitMiles = 0;
   let nextSplitBoundaryMeters = 1609.344;
@@ -69,9 +84,9 @@ function sessionStats(points, startedAt, elapsedSeconds) {
     }
 
     meters = afterMeters;
-    elevationMeters += Math.max(0, usableElevationDeltaMeters(points[i - 1], points[i]));
   }
 
+  const elevation = elevationGainLossFeet(points);
   const referenceTime =
     Number.isFinite(elapsedSeconds) && startedAt
       ? startedAt + elapsedSeconds * 1000
@@ -93,7 +108,9 @@ function sessionStats(points, startedAt, elapsedSeconds) {
   return {
     meters,
     miles,
-    elevationFeet: metersToFeet(elevationMeters),
+    elevationFeet: elevation.gain,
+    elevationGainFeet: elevation.gain,
+    elevationLossFeet: elevation.loss,
     averagePace,
     splitDistanceMiles,
     currentSplitMiles,

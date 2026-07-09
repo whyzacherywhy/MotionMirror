@@ -11,6 +11,7 @@ let trackingStartedAt = null;
 let isTracking = false;
 let isLockingGps = false;
 let coachConnected = false;
+let gpsRequestId = 0;
 
 const el = {
   name: document.querySelector("#runnerNameInput"),
@@ -121,7 +122,8 @@ function drawPoint(point) {
   map.setView(latLng, Math.max(map.getZoom(), 16), { animate: true });
 }
 
-async function sendPoint(point) {
+async function sendPoint(point, action = "track") {
+  if (action === "track" && !isTracking) return;
   const pointAt = point.at || Date.now();
   beginLocalTracking(pointAt);
   drawPoint(point);
@@ -131,6 +133,7 @@ async function sendPoint(point) {
     body: JSON.stringify({
       sessionId,
       runnerName: el.name.value.trim() || "Runner",
+      action,
       ...point,
     }),
   });
@@ -155,10 +158,11 @@ function pointFromPosition(position) {
   };
 }
 
-function startWatchingGps() {
+function startWatchingGps(requestId) {
   watchId = navigator.geolocation.watchPosition(
     (position) => {
-      sendPoint(pointFromPosition(position));
+      if (requestId !== gpsRequestId) return;
+      sendPoint(pointFromPosition(position), "track");
     },
     () => {
       freezeLocalTracking();
@@ -181,12 +185,16 @@ function startGps() {
   }
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   isLockingGps = true;
+  gpsRequestId += 1;
+  const requestId = gpsRequestId;
+  const action = startedAt ? "resume" : "start";
   updateStatusBadges();
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      sendPoint(pointFromPosition(position));
+      if (requestId !== gpsRequestId) return;
+      sendPoint(pointFromPosition(position), action);
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      startWatchingGps();
+      startWatchingGps(requestId);
     },
     () => {
       isLockingGps = false;
@@ -199,6 +207,7 @@ function startGps() {
 }
 
 async function pauseRun() {
+  gpsRequestId += 1;
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   watchId = null;
   clearInterval(demoTimer);

@@ -186,11 +186,7 @@ function recentGrade(points) {
 }
 
 function currentGainFeet(points) {
-  const first = points[0];
-  const last = points.at(-1);
-  if (!first || !last) return 0;
-  if (!Number.isFinite(first.altitude) || !Number.isFinite(last.altitude)) return 0;
-  return Math.max(0, metersToFeet(last.altitude - first.altitude));
+  return elevationGainLossFeet(points).gain;
 }
 
 function interpolatePoint(a, b, ratio) {
@@ -347,7 +343,7 @@ function drawSession(session) {
   el.splitPace.textContent = formatPace(stats.splitPace);
   el.averagePace.textContent = formatPace(stats.averagePace);
   el.splitProgress.textContent = `Mile ${stats.splitNumber} · ${stats.currentSplitMiles.toFixed(2)}/${stats.splitDistanceMiles} mi`;
-  el.elevation.textContent = `${Math.round(stats.elevationFeet)} ft`;
+  el.elevation.textContent = `+${Math.round(stats.elevationGainFeet)} / -${Math.round(stats.elevationLossFeet)} ft`;
   el.grade.textContent = `grade ${grade === "--" ? "--" : `${grade}%`}`;
   el.accuracy.textContent = last?.accuracy ? `${Math.round(metersToFeet(last.accuracy))} ft` : "-- ft";
   el.updatedAt.textContent = last ? formatTime(last.at) : "waiting";
@@ -589,6 +585,7 @@ setInterval(() => {
   const stats = sessionStats(activeSession.points || [], activeSession.startedAt, elapsedSeconds);
   el.distance.textContent = `${stats.miles.toFixed(2)} mi`;
   el.averagePace.textContent = formatPace(stats.averagePace);
+  el.elevation.textContent = `+${Math.round(stats.elevationGainFeet)} / -${Math.round(stats.elevationLossFeet)} ft`;
   el.effortElapsed.textContent = formatDuration(effort.elapsedSeconds);
   el.effortMeters.textContent = `${Math.round(effort.meters)} m`;
   el.effortDistance.textContent = `${effort.miles.toFixed(2)} mi`;

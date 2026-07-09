@@ -240,14 +240,7 @@ function routeDistanceMeters(points) {
 }
 
 function elevationChangeFeet(points) {
-  let gain = 0;
-  let loss = 0;
-  for (let i = 1; i < points.length; i += 1) {
-    const change = metersToFeet(usableElevationDeltaMeters(points[i - 1], points[i]));
-    if (change >= 0) gain += change;
-    else loss += Math.abs(change);
-  }
-  return { gain, loss };
+  return elevationGainLossFeet(points);
 }
 
 function interpolateRoutePoint(a, b, ratio) {

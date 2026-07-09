@@ -568,8 +568,13 @@ const server = http.createServer(async (req, res) => {
         return json(res, 400, { error: "A valid latitude and longitude are required." });
       }
 
+      const action = ["start", "resume", "track"].includes(body.action) ? body.action : "track";
       const previousStatus = session.status;
       const isFirstPoint = !session.startedAt;
+
+      if (previousStatus === "paused" && action !== "resume") {
+        return json(res, 202, { ok: true, ignored: true, session: serializeSession(session) });
+      }
 
       if (!session.runnerNameEditedByCoach) {
         session.runnerName = body.runnerName || session.runnerName;
