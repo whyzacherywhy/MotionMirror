@@ -102,6 +102,16 @@ function mapRun(row) {
   };
 }
 
+function mapCoach(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    hasPassword: Boolean(row.password_hash),
+  };
+}
+
 async function ensureDefaultCoach() {
   const email = process.env.COACH_EMAIL || "coach@coachlink.local";
   const displayName = process.env.COACH_NAME || "Coach";
@@ -113,14 +123,50 @@ async function ensureDefaultCoach() {
   );
 }
 
-async function defaultCoachId(client = { query }) {
-  const email = process.env.COACH_EMAIL || "coach@coachlink.local";
-  const result = await client.query("select id from coaches where email = $1 limit 1", [email]);
-  return result.rows[0]?.id;
+export async function setupRequired() {
+  const result = await query("select count(*)::int as count from coaches where password_hash is not null");
+  return Number(result.rows[0]?.count || 0) === 0;
 }
 
-export async function listProfiles() {
-  const coachId = await defaultCoachId();
+export async function findCoachByEmail(email) {
+  const result = await query("select * from coaches where lower(email) = lower($1) limit 1", [email]);
+  return result.rows[0] || null;
+}
+
+export async function getCoachById(coachId) {
+  const result = await query("select * from coaches where id = $1 limit 1", [coachId]);
+  return mapCoach(result.rows[0]);
+}
+
+export async function saveCoachLogin({ email, displayName, passwordHash }) {
+  const result = await query(
+    `insert into coaches (email, display_name, password_hash)
+     values ($1, $2, $3)
+     on conflict (email) do update
+       set display_name = excluded.display_name,
+           password_hash = excluded.password_hash,
+           updated_at = now()
+     returning *`,
+    [email, displayName || "Coach", passwordHash],
+  );
+  const coach = mapCoach(result.rows[0]);
+  await query(
+    `update runner_profiles
+     set coach_id = $1, updated_at = now()
+     where coach_id is null
+        or coach_id in (select id from coaches where password_hash is null)`,
+    [coach.id],
+  );
+  return coach;
+}
+
+export async function suggestedCoach() {
+  const email = process.env.COACH_EMAIL || "coach@coachlink.local";
+  const displayName = process.env.COACH_NAME || "Coach";
+  return { email, displayName };
+}
+
+export async function listProfiles(coachId) {
   const profiles = await query(
     `select *
      from runner_profiles
@@ -144,8 +190,7 @@ export async function listProfiles() {
   return profiles.rows.map((profile) => mapProfile(profile, runsByProfile.get(profile.id) || []));
 }
 
-export async function createProfile({ name }) {
-  const coachId = await defaultCoachId();
+export async function createProfile({ name, coachId }) {
   const result = await query(
     `insert into runner_profiles (coach_id, name)
      values ($1, $2)
@@ -155,8 +200,11 @@ export async function createProfile({ name }) {
   return mapProfile(result.rows[0], []);
 }
 
-export async function getProfile(profileId) {
-  const profileResult = await query("select * from runner_profiles where id = $1", [profileId]);
+export async function getProfile(profileId, coachId) {
+  const profileResult = await query("select * from runner_profiles where id = $1 and coach_id = $2", [
+    profileId,
+    coachId,
+  ]);
   const profile = profileResult.rows[0];
   if (!profile) return null;
   const runsResult = await query(
@@ -168,7 +216,7 @@ export async function getProfile(profileId) {
   return mapProfile(profile, runsResult.rows.map(mapRunSummary));
 }
 
-export async function updateProfile(profileId, updates) {
+export async function updateProfile(profileId, coachId, updates) {
   const result = await query(
     `update runner_profiles
      set name = coalesce($2, name),
@@ -178,7 +226,7 @@ export async function updateProfile(profileId, updates) {
          coach_notes = coalesce($6, coach_notes),
          photo_url = coalesce($7, photo_url),
          updated_at = now()
-     where id = $1
+     where id = $1 and coach_id = $8
      returning *`,
     [
       profileId,
@@ -188,18 +236,26 @@ export async function updateProfile(profileId, updates) {
       updates.goals ?? null,
       updates.coachNotes ?? null,
       updates.photo ?? null,
+      coachId,
     ],
   );
   if (!result.rows[0]) return null;
-  const profile = await getProfile(profileId);
+  const profile = await getProfile(profileId, coachId);
   return profile;
 }
 
-export async function getRun(profileId, runId) {
-  const result = await query("select * from run_entries where profile_id = $1 and id = $2", [
+export async function getRun(profileId, runId, coachId) {
+  const result = await query(
+    `select re.*
+     from run_entries re
+     join runner_profiles rp on rp.id = re.profile_id
+     where re.profile_id = $1 and re.id = $2 and rp.coach_id = $3`,
+    [
     profileId,
     runId,
-  ]);
+      coachId,
+    ],
+  );
   const row = result.rows[0];
   if (!row) return null;
   const run = mapRun(row);
@@ -245,8 +301,14 @@ export async function getRun(profileId, runId) {
   return run;
 }
 
-export async function saveRun(profileId, run) {
+export async function saveRun(profileId, coachId, run) {
   return transaction(async (client) => {
+    const profile = await client.query("select id from runner_profiles where id = $1 and coach_id = $2", [
+      profileId,
+      coachId,
+    ]);
+    if (!profile.rows[0]) return null;
+
     const inserted = await client.query(
       `insert into run_entries (
          profile_id, title, date_label, started_at, ended_at, distance_miles,
@@ -335,23 +397,25 @@ export async function saveRun(profileId, run) {
   });
 }
 
-export async function updateRunNotes(profileId, runId, notes) {
+export async function updateRunNotes(profileId, runId, coachId, notes) {
   const result = await query(
-    `update run_entries
+    `update run_entries re
      set notes = $3, updated_at = now()
-     where profile_id = $1 and id = $2
-     returning *`,
-    [profileId, runId, notes || ""],
+     from runner_profiles rp
+     where re.profile_id = $1 and re.id = $2 and re.profile_id = rp.id and rp.coach_id = $4
+     returning re.*`,
+    [profileId, runId, notes || "", coachId],
   );
   return result.rows[0] ? mapRunSummary(result.rows[0]) : null;
 }
 
-export async function deleteRun(profileId, runId) {
+export async function deleteRun(profileId, runId, coachId) {
   const result = await query(
-    `delete from run_entries
-     where profile_id = $1 and id = $2
-     returning id`,
-    [profileId, runId],
+    `delete from run_entries re
+     using runner_profiles rp
+     where re.profile_id = $1 and re.id = $2 and re.profile_id = rp.id and rp.coach_id = $3
+     returning re.id`,
+    [profileId, runId, coachId],
   );
   if (!result.rows[0]) return false;
   await query("update runner_profiles set updated_at = now() where id = $1", [profileId]);

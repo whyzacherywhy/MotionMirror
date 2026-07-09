@@ -1,16 +1,22 @@
 import http from "node:http";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   createProfile,
   deleteRun,
+  findCoachByEmail,
+  getCoachById,
   getProfile,
   getRun,
   hasDatabase,
   initDatabase,
   listProfiles,
   saveRun,
+  saveCoachLogin,
+  setupRequired,
+  suggestedCoach,
   updateProfile,
   updateRunNotes,
 } from "./db.js";
@@ -22,6 +28,7 @@ const host = process.env.HOST || "0.0.0.0";
 const sessions = new Map();
 const coachStreams = new Set();
 const runnerStreams = new Map();
+const sessionSecret = process.env.SESSION_SECRET || "local-dev-secret-change-me";
 
 function json(res, status, body) {
   const payload = JSON.stringify(body);
@@ -30,6 +37,79 @@ function json(res, status, body) {
     "content-length": Buffer.byteLength(payload),
   });
   res.end(payload);
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  return Object.fromEntries(
+    header
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const index = part.indexOf("=");
+        return [decodeURIComponent(part.slice(0, index)), decodeURIComponent(part.slice(index + 1))];
+      }),
+  );
+}
+
+function sign(value) {
+  return createHmac("sha256", sessionSecret).update(value).digest("base64url");
+}
+
+function signedCookieValue(coachId) {
+  return `${coachId}.${sign(coachId)}`;
+}
+
+function verifySignedCookie(value) {
+  if (!value) return null;
+  const [coachId, signature] = value.split(".");
+  if (!coachId || !signature) return null;
+  const expected = sign(coachId);
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length) return null;
+  if (!timingSafeEqual(actualBuffer, expectedBuffer)) return null;
+  return coachId;
+}
+
+function cookieOptions(req) {
+  const secure = req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production";
+  return `HttpOnly; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}${secure ? "; Secure" : ""}`;
+}
+
+function setCoachCookie(req, res, coachId) {
+  res.setHeader("set-cookie", `coach_session=${encodeURIComponent(signedCookieValue(coachId))}; ${cookieOptions(req)}`);
+}
+
+function clearCoachCookie(res) {
+  res.setHeader("set-cookie", "coach_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0");
+}
+
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("base64url");
+  const hash = scryptSync(password, salt, 64).toString("base64url");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+  if (!stored) return false;
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const actual = Buffer.from(scryptSync(password, salt, 64).toString("base64url"));
+  const expected = Buffer.from(hash);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+async function currentCoach(req) {
+  if (!hasDatabase) return null;
+  const coachId = verifySignedCookie(parseCookies(req).coach_session);
+  if (!coachId) return null;
+  return getCoachById(coachId);
+}
+
+function authRequired(res) {
+  return json(res, 401, { error: "Coach login required." });
 }
 
 function getSession(id) {
@@ -194,6 +274,19 @@ function databaseUnavailable(res) {
   return json(res, 503, { error: "Database is not configured." });
 }
 
+function isProtectedPage(urlPath) {
+  return [
+    "/coach",
+    "/coach.html",
+    "/profiles",
+    "/profiles.html",
+    "/profile",
+    "/profile.html",
+    "/run",
+    "/run.html",
+  ].includes(urlPath);
+}
+
 function safeFilePath(urlPath) {
   const aliases = {
     "/coach": "/coach.html",
@@ -201,6 +294,7 @@ function safeFilePath(urlPath) {
     "/profiles": "/profiles.html",
     "/profile": "/profile.html",
     "/run": "/run.html",
+    "/login": "/login.html",
   };
   const requested = urlPath === "/" ? "/index.html" : aliases[urlPath] || urlPath;
   const clean = normalize(decodeURIComponent(requested)).replace(/^(\.\.[/\\])+/, "");
@@ -219,34 +313,86 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   try {
+    const coach = await currentCoach(req);
+
+    if (req.method === "GET" && url.pathname === "/api/auth/me") {
+      const needsSetup = hasDatabase ? await setupRequired() : false;
+      return json(res, 200, {
+        authenticated: Boolean(coach),
+        coach,
+        setupRequired: needsSetup,
+        suggestedCoach: needsSetup ? await suggestedCoach() : null,
+      });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/auth/setup") {
+      if (!hasDatabase) return databaseUnavailable(res);
+      if (!(await setupRequired())) return json(res, 409, { error: "Coach account already exists." });
+      const body = await readBody(req);
+      const email = String(body.email || "").trim().toLowerCase();
+      const displayName = String(body.displayName || "Coach").trim() || "Coach";
+      const password = String(body.password || "");
+      if (!email || !password || password.length < 8) {
+        return json(res, 400, { error: "Use an email and a password with at least 8 characters." });
+      }
+      const created = await saveCoachLogin({ email, displayName, passwordHash: hashPassword(password) });
+      setCoachCookie(req, res, created.id);
+      return json(res, 201, { coach: created });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/auth/login") {
+      if (!hasDatabase) return databaseUnavailable(res);
+      const body = await readBody(req);
+      const email = String(body.email || "").trim().toLowerCase();
+      const password = String(body.password || "");
+      const coachRow = await findCoachByEmail(email);
+      if (!coachRow || !verifyPassword(password, coachRow.password_hash)) {
+        return json(res, 401, { error: "Email or password is incorrect." });
+      }
+      setCoachCookie(req, res, coachRow.id);
+      return json(res, 200, {
+        coach: { id: coachRow.id, email: coachRow.email, displayName: coachRow.display_name },
+      });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/auth/logout") {
+      clearCoachCookie(res);
+      return json(res, 200, { ok: true });
+    }
+
     if (req.method === "GET" && url.pathname === "/api/sessions") {
+      if (hasDatabase && !coach) return authRequired(res);
       return json(res, 200, snapshot());
     }
 
     if (req.method === "GET" && url.pathname === "/api/profiles") {
       if (!hasDatabase) return databaseUnavailable(res);
-      return json(res, 200, { profiles: await listProfiles() });
+      if (!coach) return authRequired(res);
+      return json(res, 200, { profiles: await listProfiles(coach.id) });
     }
 
     if (req.method === "POST" && url.pathname === "/api/profiles") {
       if (!hasDatabase) return databaseUnavailable(res);
+      if (!coach) return authRequired(res);
       const body = await readBody(req);
       const name = String(body.name || "").trim();
       if (!name) return json(res, 400, { error: "Runner name is required." });
-      return json(res, 201, { profile: await createProfile({ name }) });
+      return json(res, 201, { profile: await createProfile({ name, coachId: coach.id }) });
     }
 
     const profileMatch = url.pathname.match(/^\/api\/profiles\/([^/]+)$/);
     if (profileMatch && req.method === "GET") {
       if (!hasDatabase) return databaseUnavailable(res);
-      const profile = await getProfile(profileMatch[1]);
+      if (!coach) return authRequired(res);
+      const profile = await getProfile(profileMatch[1], coach.id);
       if (!profile) return json(res, 404, { error: "Profile not found." });
       return json(res, 200, { profile });
     }
 
     if (profileMatch && req.method === "PATCH") {
       if (!hasDatabase) return databaseUnavailable(res);
-      const profile = await updateProfile(profileMatch[1], await readBody(req));
+      if (!coach) return authRequired(res);
+      const profile = await updateProfile(profileMatch[1], coach.id, await readBody(req));
       if (!profile) return json(res, 404, { error: "Profile not found." });
       return json(res, 200, { profile });
     }
@@ -254,16 +400,19 @@ const server = http.createServer(async (req, res) => {
     const profileRunCollectionMatch = url.pathname.match(/^\/api\/profiles\/([^/]+)\/runs$/);
     if (profileRunCollectionMatch && req.method === "POST") {
       if (!hasDatabase) return databaseUnavailable(res);
+      if (!coach) return authRequired(res);
       const body = await readBody(req);
-      const saved = await saveRun(profileRunCollectionMatch[1], body.run || {});
+      const saved = await saveRun(profileRunCollectionMatch[1], coach.id, body.run || {});
+      if (!saved) return json(res, 404, { error: "Profile not found." });
       return json(res, 201, { run: saved });
     }
 
     const profileRunNotesMatch = url.pathname.match(/^\/api\/profiles\/([^/]+)\/runs\/([^/]+)\/notes$/);
     if (profileRunNotesMatch && req.method === "PATCH") {
       if (!hasDatabase) return databaseUnavailable(res);
+      if (!coach) return authRequired(res);
       const body = await readBody(req);
-      const run = await updateRunNotes(profileRunNotesMatch[1], profileRunNotesMatch[2], body.notes || "");
+      const run = await updateRunNotes(profileRunNotesMatch[1], profileRunNotesMatch[2], coach.id, body.notes || "");
       if (!run) return json(res, 404, { error: "Run not found." });
       return json(res, 200, { run });
     }
@@ -271,19 +420,22 @@ const server = http.createServer(async (req, res) => {
     const profileRunMatch = url.pathname.match(/^\/api\/profiles\/([^/]+)\/runs\/([^/]+)$/);
     if (profileRunMatch && req.method === "DELETE") {
       if (!hasDatabase) return databaseUnavailable(res);
-      const deleted = await deleteRun(profileRunMatch[1], profileRunMatch[2]);
+      if (!coach) return authRequired(res);
+      const deleted = await deleteRun(profileRunMatch[1], profileRunMatch[2], coach.id);
       if (!deleted) return json(res, 404, { error: "Run not found." });
       return json(res, 200, { ok: true });
     }
 
     if (profileRunMatch && req.method === "GET") {
       if (!hasDatabase) return databaseUnavailable(res);
-      const run = await getRun(profileRunMatch[1], profileRunMatch[2]);
+      if (!coach) return authRequired(res);
+      const run = await getRun(profileRunMatch[1], profileRunMatch[2], coach.id);
       if (!run) return json(res, 404, { error: "Run not found." });
       return json(res, 200, { run });
     }
 
     if (req.method === "GET" && url.pathname === "/api/events") {
+      if (hasDatabase && !coach) return authRequired(res);
       const sessionId = url.searchParams.get("sessionId");
       const session = sessionId ? getSession(sessionId) : null;
       res.writeHead(200, {
@@ -371,6 +523,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/runner-name") {
+      if (hasDatabase && !coach) return authRequired(res);
       const body = await readBody(req);
       const session = getSession(body.sessionId || "demo");
       const runnerName = String(body.runnerName || "").trim().slice(0, 80);
@@ -420,6 +573,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/cue") {
+      if (hasDatabase && !coach) return authRequired(res);
       const body = await readBody(req);
       const session = getSession(body.sessionId || "demo");
       const cue = {
@@ -434,6 +588,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/effort-split") {
+      if (hasDatabase && !coach) return authRequired(res);
       const body = await readBody(req);
       const session = getSession(body.sessionId || "demo");
       const now = Date.now();
@@ -465,6 +620,12 @@ const server = http.createServer(async (req, res) => {
 
       broadcastCoach("session", serializeSession(session));
       return json(res, 200, { ok: true, session: serializeSession(session) });
+    }
+
+    if (req.method === "GET" && hasDatabase && isProtectedPage(url.pathname) && !coach) {
+      res.writeHead(302, { location: `/login.html?next=${encodeURIComponent(url.pathname + url.search)}` });
+      res.end();
+      return;
     }
 
     const filePath = safeFilePath(url.pathname);

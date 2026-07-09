@@ -4,6 +4,7 @@ create table if not exists coaches (
   id uuid primary key default gen_random_uuid(),
   email text unique,
   display_name text not null default 'Coach',
+  password_hash text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -106,3 +107,4 @@ alter table run_mile_splits add column if not exists label text not null default
 alter table run_mile_splits add column if not exists distance_miles numeric(8, 3) not null default 1;
 alter table run_mile_splits add column if not exists is_partial boolean not null default false;
 alter table run_coach_splits add column if not exists distance_meters numeric(10, 2) not null default 0;
+alter table coaches add column if not exists password_hash text;

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coach Login</title>
+    <link rel="stylesheet" href="/coach-lab.css" />
+  </head>
+  <body class="archive-body">
+    <main class="auth-shell">
+      <section class="auth-card">
+        <div>
+          <p>CoachLink</p>
+          <h1 id="authTitle">Coach login</h1>
+          <span id="authSubtitle">Sign in to view private profiles and saved runs.</span>
+        </div>
+
+        <form id="authForm" class="auth-form">
+          <label id="nameField" hidden>
+            Name
+            <input id="displayName" autocomplete="name" />
+          </label>
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" autocomplete="current-password" minlength="8" required />
+          </label>
+          <button class="primary" type="submit" id="authSubmit">Sign in</button>
+        </form>
+
+        <p id="authMessage" class="auth-message"></p>
+      </section>
+    </main>
+
+    <script src="/auth.js"></script>
+  </body>
+</html>
