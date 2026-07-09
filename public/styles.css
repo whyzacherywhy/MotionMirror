@@ -500,6 +500,30 @@ code {
   font-size: 0.98rem;
 }
 
+#pauseBtn {
+  border-color: #ffd21f;
+  background: #ffd21f;
+  color: #171000;
+}
+
+#pauseBtn:hover {
+  border-color: #ffe36b;
+  background: #ffe36b;
+  color: #171000;
+}
+
+#stopBtn {
+  border-color: #ff2d2d;
+  background: #ff2d2d;
+  color: #fff;
+}
+
+#stopBtn:hover {
+  border-color: #ff6262;
+  background: #ff6262;
+  color: #fff;
+}
+
 .track-mode-button {
   border-color: rgba(255, 59, 48, 0.65) !important;
   background: rgba(255, 59, 48, 0.16) !important;
