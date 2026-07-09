@@ -327,6 +327,41 @@ function renderHistory(session, points, effort) {
   }
 }
 
+function routeLastAt(session) {
+  return Number(session?.lastPoint?.at || session?.points?.at(-1)?.at || 0);
+}
+
+function shouldAcceptSessionUpdate(session, { force = false } = {}) {
+  if (!session) return false;
+  if (force) return true;
+  const currentPoints = activeSession?.points || [];
+  const incomingPoints = session.points || [];
+  const currentLastAt = routeLastAt(activeSession);
+  const incomingLastAt = routeLastAt(session);
+
+  if (
+    incomingPoints.length < currentPoints.length &&
+    incomingLastAt > 0 &&
+    incomingLastAt <= currentLastAt
+  ) {
+    return false;
+  }
+
+  if (
+    incomingPoints.length === currentPoints.length &&
+    incomingLastAt > 0 &&
+    incomingLastAt < currentLastAt
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function acceptSessionUpdate(session, options) {
+  if (shouldAcceptSessionUpdate(session, options)) drawSession(session);
+}
+
 function drawSession(session) {
   holdEndedSession = session.status === "stopped";
   activeSession = { ...session, receivedAt: Date.now() };
@@ -594,7 +629,7 @@ el.newSession.addEventListener("click", async () => {
 
 fetch("/api/sessions")
   .then((response) => response.json())
-  .then((sessions) => drawSession(sessions.find((session) => session.id === sessionId) || activeSession));
+  .then((sessions) => acceptSessionUpdate(sessions.find((session) => session.id === sessionId) || activeSession));
 
 setInterval(() => {
   fetch("/api/sessions")
@@ -602,7 +637,7 @@ setInterval(() => {
     .then((sessions) => {
       const session = sessions.find((item) => item.id === sessionId);
       if (holdEndedSession) return;
-      if (session) drawSession(session);
+      if (session) acceptSessionUpdate(session);
     })
     .catch(() => {});
 }, 3000);
@@ -633,18 +668,18 @@ setInterval(() => {
 const events = new EventSource(`/api/events?sessionId=${encodeURIComponent(sessionId)}`);
 events.addEventListener("snapshot", (event) => {
   const sessions = JSON.parse(event.data);
-  drawSession(sessions.find((session) => session.id === sessionId) || activeSession);
+  acceptSessionUpdate(sessions.find((session) => session.id === sessionId) || activeSession);
 });
 events.addEventListener("session", (event) => {
   const session = JSON.parse(event.data);
-  if (session.id === sessionId) drawSession(session);
+  if (session.id === sessionId) acceptSessionUpdate(session);
 });
 events.addEventListener("ended-session", (event) => {
   const session = JSON.parse(event.data);
   if (session.id !== sessionId) return;
   lastSaveableSession = snapshotForSave({ ...session, receivedAt: Date.now() });
   saveRunDraft(sessionId, lastSaveableSession);
-  drawSession(session);
+  acceptSessionUpdate(session, { force: true });
 });
 events.addEventListener("presence", (event) => {
   const presence = JSON.parse(event.data);
