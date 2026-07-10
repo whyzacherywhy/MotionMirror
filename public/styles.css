@@ -414,8 +414,20 @@ code {
 
 .runner-page input {
   border-color: var(--runner-line);
-  background: #090d12;
+  background: var(--runner-panel-2);
   color: var(--runner-text);
+  caret-color: var(--runner-text);
+}
+
+.runner-page input::placeholder {
+  color: var(--runner-muted);
+}
+
+:root[data-theme="light"] .runner-page input {
+  background: #fff9e8;
+  color: #01081a;
+  border-color: rgba(1, 8, 26, 0.32);
+  caret-color: #01081a;
 }
 
 .runner-page .mark {
