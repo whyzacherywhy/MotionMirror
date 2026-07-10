@@ -295,27 +295,36 @@ function downloadReceipt(profile, run, notes, takeaway, format) {
 function drawReceiptGhost(ctx, x, y) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = "#f7f3df";
-  ctx.strokeStyle = "#111";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(0, 34);
-  ctx.bezierCurveTo(0, 14, 11, 0, 28, 0);
-  ctx.bezierCurveTo(45, 0, 56, 14, 56, 34);
-  ctx.lineTo(56, 48);
-  ctx.lineTo(47, 41);
-  ctx.lineTo(38, 48);
-  ctx.lineTo(28, 41);
-  ctx.lineTo(18, 48);
-  ctx.lineTo(9, 41);
-  ctx.lineTo(0, 48);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
   ctx.fillStyle = "#111";
   ctx.beginPath();
-  ctx.arc(20, 24, 4, 0, Math.PI * 2);
-  ctx.arc(36, 24, 4, 0, Math.PI * 2);
+  ctx.moveTo(8, 48);
+  ctx.bezierCurveTo(6, 41, 8, 34, 13, 28);
+  ctx.bezierCurveTo(13, 11, 24, 0, 38, 0);
+  ctx.bezierCurveTo(52, 0, 63, 11, 63, 28);
+  ctx.bezierCurveTo(70, 30, 73, 37, 68, 44);
+  ctx.bezierCurveTo(64, 50, 58, 53, 54, 58);
+  ctx.bezierCurveTo(55, 65, 50, 71, 42, 68);
+  ctx.bezierCurveTo(38, 66, 35, 66, 31, 68);
+  ctx.bezierCurveTo(24, 71, 18, 66, 19, 58);
+  ctx.bezierCurveTo(15, 54, 10, 52, 8, 48);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#f7f3df";
+  ctx.beginPath();
+  ctx.ellipse(30, 29, 4, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(46, 29, 4, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(38, 40, 9, 0.08 * Math.PI, 0.92 * Math.PI);
+  ctx.lineTo(29, 40);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#111";
+  ctx.beginPath();
+  ctx.ellipse(34, 47, 7, 2.8, 0.35, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -336,8 +345,8 @@ function drawReceiptCanvas(profile, run, receipt) {
   ctx.lineWidth = 2;
   ctx.font = "700 44px Courier New, monospace";
   ctx.textAlign = "center";
-  drawReceiptGhost(ctx, 64, 12);
-  drawReceiptGhost(ctx, width - 120, 12);
+  drawReceiptGhost(ctx, 52, 6);
+  drawReceiptGhost(ctx, width - 124, 6);
   ctx.fillText("MOTION MIRROR", width / 2, y);
   y += 28;
   y = receiptDivider(ctx, y, width, margin);
