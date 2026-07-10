@@ -60,12 +60,17 @@ button:hover,
   right: 14px;
   bottom: 14px;
   z-index: 1200;
-  min-width: 76px;
-  min-height: 38px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
   border: 2px solid currentColor;
-  border-radius: 999px;
+  border-radius: 50%;
   background: var(--runner-bg, var(--paper));
   color: var(--runner-text, var(--ink));
+  font-size: 1.25rem;
+  line-height: 1;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
 }
 

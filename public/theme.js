@@ -5,7 +5,7 @@ function applyTheme(theme) {
   root.dataset.theme = theme;
   localStorage.setItem(themeKey, theme);
   document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    button.textContent = theme === "light" ? "Moon" : "Sun";
+    button.textContent = theme === "light" ? "☾" : "☀";
     button.setAttribute("aria-label", theme === "light" ? "Switch to night mode" : "Switch to light mode");
   });
 }

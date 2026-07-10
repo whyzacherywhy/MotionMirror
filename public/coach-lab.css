@@ -49,11 +49,17 @@ body {
   right: 14px;
   bottom: 14px;
   z-index: 1200;
-  min-width: 76px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
   border: 2px solid var(--text);
-  border-radius: 999px;
+  border-radius: 50%;
   background: var(--bg);
   color: var(--text);
+  font-size: 1.25rem;
+  line-height: 1;
   box-shadow: 0 10px 26px var(--shadow);
 }
 
