@@ -984,6 +984,14 @@ body.track-mode .runner-marker {
 .danger-action {
   border-color: rgba(255, 176, 166, 0.46);
   color: #ffb0a6;
+  background: transparent;
+}
+
+.danger-action:hover,
+.delete-run:hover {
+  background: #ff2d2d;
+  border-color: #ff2d2d;
+  color: #01081a;
 }
 
 .profile-grid {
@@ -1024,6 +1032,13 @@ body.track-mode .runner-marker {
   border-right: 0;
   border-bottom: 0;
   color: #ffb0a6;
+  background: transparent;
+}
+
+:root[data-theme="light"] .danger-action,
+:root[data-theme="light"] .delete-run {
+  border-color: #b90000;
+  color: #b90000;
 }
 
 .empty-state {
