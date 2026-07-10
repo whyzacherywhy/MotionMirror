@@ -545,6 +545,18 @@ code {
   font-size: 0.98rem;
 }
 
+#startBtn {
+  border-color: #8fe06b !important;
+  background: #8fe06b !important;
+  color: #01081a !important;
+}
+
+#startBtn:hover {
+  border-color: #b5f391 !important;
+  background: #b5f391 !important;
+  color: #01081a !important;
+}
+
 #pauseBtn {
   border-color: #ffd400 !important;
   background: #ffd400 !important;

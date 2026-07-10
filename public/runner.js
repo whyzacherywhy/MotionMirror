@@ -280,7 +280,10 @@ function startDemo() {
 }
 
 el.start.addEventListener("click", () => startGps("free"));
-el.trackMode.addEventListener("click", () => startGps("track"));
+el.trackMode.addEventListener("click", () => {
+  if (!confirm("Are you sure you want to start track mode?")) return;
+  startGps("track");
+});
 el.consent.addEventListener("change", updateStatusBadges);
 el.name.addEventListener("input", updateRunnerInitial);
 el.pause.addEventListener("click", pauseRun);
