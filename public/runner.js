@@ -16,6 +16,7 @@ let runMode = "free";
 
 const el = {
   name: document.querySelector("#runnerNameInput"),
+  initial: document.querySelector("#runnerInitial"),
   start: document.querySelector("#startBtn"),
   trackMode: document.querySelector("#trackModeBtn"),
   pause: document.querySelector("#pauseBtn"),
@@ -34,6 +35,14 @@ const el = {
   coachConnection: document.querySelector("#coachConnection"),
   trackingStatus: document.querySelector("#trackingStatus"),
 };
+
+function runnerInitial(name) {
+  return (name || "Runner").trim().charAt(0).toUpperCase() || "R";
+}
+
+function updateRunnerInitial() {
+  el.initial.textContent = runnerInitial(el.name.value);
+}
 
 function updateStatusBadges() {
   el.coachConnection.textContent = coachConnected ? "Coach connected" : "Coach disconnected";
@@ -150,6 +159,7 @@ async function sendPoint(point, action = "track") {
 function applySessionUpdate(session) {
   if (session?.runnerName && document.activeElement !== el.name) {
     el.name.value = session.runnerName;
+    updateRunnerInitial();
   }
   if (session?.mode) {
     runMode = session.mode;
@@ -272,6 +282,7 @@ function startDemo() {
 el.start.addEventListener("click", () => startGps("free"));
 el.trackMode.addEventListener("click", () => startGps("track"));
 el.consent.addEventListener("change", updateStatusBadges);
+el.name.addEventListener("input", updateRunnerInitial);
 el.pause.addEventListener("click", pauseRun);
 el.stop.addEventListener("click", stopRun);
 el.mapToggle.addEventListener("click", () => setMapVisible(el.mapPanel.classList.contains("is-hidden")));
@@ -295,5 +306,6 @@ events.addEventListener("reset", () => {
 });
 
 updateStatusBadges();
+updateRunnerInitial();
 updateUi();
 setInterval(updateUi, 1000);
