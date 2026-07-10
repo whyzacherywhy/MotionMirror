@@ -1,12 +1,12 @@
 :root {
   color-scheme: dark;
-  --mirror-blue: #06183a;
-  --mirror-blue-2: #0a214c;
+  --mirror-blue: #01081a;
+  --mirror-blue-2: #04122b;
   --mirror-cream: #fbf5df;
   --mirror-cream-2: #f2ead1;
   --bg: var(--mirror-blue);
-  --panel: #081d45;
-  --panel-soft: rgba(8, 29, 69, 0.9);
+  --panel: #030d22;
+  --panel-soft: rgba(3, 13, 34, 0.94);
   --line: rgba(251, 245, 223, 0.22);
   --line-strong: rgba(251, 245, 223, 0.42);
   --text: var(--mirror-cream);
@@ -16,8 +16,7 @@
   --amber: #f2b35e;
   --red: #ef6d5f;
   --shadow: rgba(0, 0, 0, 0.38);
-  font-family:
-    "Courier New", Courier, monospace;
+  font-family: Helvetica, Arial, sans-serif;
 }
 
 :root[data-theme="light"] {
@@ -25,10 +24,10 @@
   --bg: var(--mirror-cream);
   --panel: #fff9e8;
   --panel-soft: rgba(255, 249, 232, 0.92);
-  --line: rgba(6, 24, 58, 0.2);
-  --line-strong: rgba(6, 24, 58, 0.42);
+  --line: rgba(1, 8, 26, 0.2);
+  --line-strong: rgba(1, 8, 26, 0.42);
   --text: var(--mirror-blue);
-  --muted: rgba(6, 24, 58, 0.66);
+  --muted: rgba(1, 8, 26, 0.66);
   --cyan: var(--mirror-blue);
   --shadow: rgba(6, 24, 58, 0.16);
 }
@@ -1312,9 +1311,9 @@ h2,
 .archive-topbar h1,
 .section-head h2,
 .lab-stats strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Helvetica, Arial, sans-serif;
   font-weight: 900;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .runner-block,
