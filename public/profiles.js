@@ -328,7 +328,19 @@ function setupSavedTextBox({ textarea, button, editLabel, saveLabel, onSave }) {
   }
 }
 
-function downloadReceipt(profile, run, notes, takeaway, format) {
+let receiptGhostPromise;
+
+function loadReceiptGhost() {
+  receiptGhostPromise ||= new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = "/motion-mirror-receipt-ghost.png";
+  });
+  return receiptGhostPromise;
+}
+
+async function downloadReceipt(profile, run, notes, takeaway, format) {
   if (!notes.value.trim()) {
     alert("Add coach notes/reflection before downloading the receipt.");
     notes.focus();
@@ -340,10 +352,11 @@ function downloadReceipt(profile, run, notes, takeaway, format) {
     return;
   }
 
+  const receiptGhost = await loadReceiptGhost();
   const canvas = drawReceiptCanvas(profile, run, {
     notes: notes.value.trim(),
     takeaway: takeaway.value.trim(),
-  });
+  }, receiptGhost);
   const link = document.createElement("a");
   const safeName = (profile.name || "runner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   link.download = `motion-mirror-${safeName || "runner"}-${run.dateLabel || "receipt"}.${format === "jpg" ? "jpg" : "png"}`;
@@ -351,44 +364,11 @@ function downloadReceipt(profile, run, notes, takeaway, format) {
   link.click();
 }
 
-function drawReceiptGhost(ctx, x, y) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.strokeStyle = "#06183a";
-  ctx.fillStyle = "#06183a";
-  ctx.lineWidth = 4;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(8, 48);
-  ctx.bezierCurveTo(12, 40, 11, 31, 12, 24);
-  ctx.bezierCurveTo(14, 9, 25, 1, 38, 1);
-  ctx.bezierCurveTo(51, 1, 62, 9, 64, 24);
-  ctx.bezierCurveTo(65, 31, 64, 40, 68, 48);
-  ctx.lineTo(58, 47);
-  ctx.bezierCurveTo(55, 51, 51, 54, 46, 52);
-  ctx.bezierCurveTo(42, 57, 35, 57, 31, 52);
-  ctx.bezierCurveTo(26, 54, 21, 51, 18, 47);
-  ctx.lineTo(8, 48);
-  ctx.stroke();
-
-  ctx.fillStyle = "#06183a";
-  ctx.beginPath();
-  ctx.ellipse(30, 26, 4, 7, 0, 0, Math.PI * 2);
-  ctx.ellipse(46, 26, 4, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(29, 38);
-  ctx.quadraticCurveTo(38, 48, 48, 38);
-  ctx.quadraticCurveTo(46, 51, 38, 51);
-  ctx.quadraticCurveTo(31, 51, 29, 38);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
+function drawReceiptGhost(ctx, image, x, y) {
+  ctx.drawImage(image, x, y, 58, 58);
 }
 
-function drawReceiptCanvas(profile, run, receipt) {
+function drawReceiptCanvas(profile, run, receipt, receiptGhost) {
   const width = 720;
   const draft = document.createElement("canvas");
   draft.width = width;
@@ -404,8 +384,8 @@ function drawReceiptCanvas(profile, run, receipt) {
   ctx.lineWidth = 2;
   ctx.font = "700 44px Courier New, monospace";
   ctx.textAlign = "center";
-  drawReceiptGhost(ctx, 52, 6);
-  drawReceiptGhost(ctx, width - 124, 6);
+  drawReceiptGhost(ctx, receiptGhost, 52, 6);
+  drawReceiptGhost(ctx, receiptGhost, width - 110, 6);
   ctx.fillText("MOTION MIRROR", width / 2, y);
   y += 28;
   y = receiptDivider(ctx, y, width, margin);
