@@ -328,16 +328,16 @@ function setupSavedTextBox({ textarea, button, editLabel, saveLabel, onSave }) {
   }
 }
 
-let receiptGhostPromise;
+let receiptHeaderPromise;
 
-function loadReceiptGhost() {
-  receiptGhostPromise ||= new Promise((resolve, reject) => {
+function loadReceiptHeader() {
+  receiptHeaderPromise ||= new Promise((resolve, reject) => {
     const image = new Image();
-    image.onload = () => resolve(transparentReceiptGhost(image));
+    image.onload = () => resolve(transparentReceiptImage(image));
     image.onerror = reject;
-    image.src = "/motion-mirror-receipt-ghost.png";
+    image.src = "/motion-mirror-receipt-header.png";
   });
-  return receiptGhostPromise;
+  return receiptHeaderPromise;
 }
 
 async function downloadReceipt(profile, run, notes, takeaway, format) {
@@ -352,11 +352,11 @@ async function downloadReceipt(profile, run, notes, takeaway, format) {
     return;
   }
 
-  const receiptGhost = await loadReceiptGhost();
+  const receiptHeader = await loadReceiptHeader();
   const canvas = drawReceiptCanvas(profile, run, {
     notes: notes.value.trim(),
     takeaway: takeaway.value.trim(),
-  }, receiptGhost);
+  }, receiptHeader);
   const link = document.createElement("a");
   const safeName = (profile.name || "runner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   link.download = `motion-mirror-${safeName || "runner"}-${run.dateLabel || "receipt"}.${format === "jpg" ? "jpg" : "png"}`;
@@ -364,7 +364,7 @@ async function downloadReceipt(profile, run, notes, takeaway, format) {
   link.click();
 }
 
-function transparentReceiptGhost(image) {
+function transparentReceiptImage(image) {
   const canvas = document.createElement("canvas");
   canvas.width = image.naturalWidth;
   canvas.height = image.naturalHeight;
@@ -381,31 +381,24 @@ function transparentReceiptGhost(image) {
   return canvas;
 }
 
-function drawReceiptGhost(ctx, image, x, y, size = 64) {
-  ctx.drawImage(image, x, y, size, size);
-}
-
-function drawReceiptCanvas(profile, run, receipt, receiptGhost) {
+function drawReceiptCanvas(profile, run, receipt, receiptHeader) {
   const width = 720;
   const draft = document.createElement("canvas");
   draft.width = width;
   draft.height = 6000;
   const ctx = draft.getContext("2d");
   const margin = 54;
-  let y = 44;
+  let y = 28;
 
   ctx.fillStyle = "#fbf5df";
   ctx.fillRect(0, 0, draft.width, draft.height);
   ctx.fillStyle = "#06183a";
   ctx.strokeStyle = "#06183a";
   ctx.lineWidth = 2;
-  ctx.font = "900 62px Courier New, monospace";
-  ctx.textAlign = "center";
-  drawReceiptGhost(ctx, receiptGhost, 42, 12, 108);
-  drawReceiptGhost(ctx, receiptGhost, width - 150, 12, 108);
-  ctx.fillText("MOTION", width / 2, y + 12);
-  ctx.fillText("MIRROR", width / 2, y + 78);
-  y += 112;
+  const headerWidth = width - 52;
+  const headerHeight = headerWidth * (receiptHeader.height / receiptHeader.width);
+  ctx.drawImage(receiptHeader, 26, y, headerWidth, headerHeight);
+  y += headerHeight + 16;
   y = receiptDivider(ctx, y, width, margin);
 
   ctx.textAlign = "left";
