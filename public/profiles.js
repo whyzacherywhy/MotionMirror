@@ -354,36 +354,36 @@ function downloadReceipt(profile, run, notes, takeaway, format) {
 function drawReceiptGhost(ctx, x, y) {
   ctx.save();
   ctx.translate(x, y);
+  ctx.strokeStyle = "#06183a";
   ctx.fillStyle = "#06183a";
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(8, 51);
-  ctx.bezierCurveTo(10, 43, 10, 34, 10, 26);
-  ctx.bezierCurveTo(10, 10, 22, 0, 38, 0);
-  ctx.bezierCurveTo(54, 0, 66, 10, 66, 26);
-  ctx.bezierCurveTo(66, 34, 66, 43, 68, 51);
-  ctx.bezierCurveTo(72, 67, 62, 75, 49, 66);
-  ctx.bezierCurveTo(42, 61, 35, 61, 28, 66);
-  ctx.bezierCurveTo(15, 75, 4, 67, 8, 51);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "#fbf5df";
-  ctx.beginPath();
-  ctx.ellipse(30, 29, 5, 8, 0, 0, Math.PI * 2);
-  ctx.ellipse(47, 29, 5, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(30, 43);
-  ctx.quadraticCurveTo(38, 51, 48, 43);
-  ctx.quadraticCurveTo(47, 60, 38, 60);
-  ctx.quadraticCurveTo(31, 60, 30, 43);
-  ctx.closePath();
-  ctx.fill();
+  ctx.moveTo(8, 48);
+  ctx.bezierCurveTo(12, 40, 11, 31, 12, 24);
+  ctx.bezierCurveTo(14, 9, 25, 1, 38, 1);
+  ctx.bezierCurveTo(51, 1, 62, 9, 64, 24);
+  ctx.bezierCurveTo(65, 31, 64, 40, 68, 48);
+  ctx.lineTo(58, 47);
+  ctx.bezierCurveTo(55, 51, 51, 54, 46, 52);
+  ctx.bezierCurveTo(42, 57, 35, 57, 31, 52);
+  ctx.bezierCurveTo(26, 54, 21, 51, 18, 47);
+  ctx.lineTo(8, 48);
+  ctx.stroke();
 
   ctx.fillStyle = "#06183a";
   ctx.beginPath();
-  ctx.ellipse(36, 55, 7, 2.5, 0.35, 0, Math.PI * 2);
+  ctx.ellipse(30, 26, 4, 7, 0, 0, Math.PI * 2);
+  ctx.ellipse(46, 26, 4, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(29, 38);
+  ctx.quadraticCurveTo(38, 48, 48, 38);
+  ctx.quadraticCurveTo(46, 51, 38, 51);
+  ctx.quadraticCurveTo(31, 51, 29, 38);
+  ctx.closePath();
   ctx.fill();
   ctx.restore();
 }
