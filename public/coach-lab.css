@@ -897,6 +897,50 @@ body.track-mode .runner-marker {
   padding: 16px;
 }
 
+.coach-profile-card {
+  width: min(620px, 100%);
+  margin: 36px auto 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(13, 18, 24, 0.9);
+  padding: 18px;
+  display: grid;
+  gap: 18px;
+}
+
+.coach-profile-card h2 {
+  margin: 4px 0 8px;
+  font-size: 2rem;
+}
+
+.coach-profile-card span,
+.coach-profile-note span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.coach-profile-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.coach-profile-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.coach-profile-form button {
+  width: max-content;
+}
+
+.coach-profile-note {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
 .profile-overview {
   margin-bottom: 14px;
   display: grid;
@@ -1350,6 +1394,7 @@ body.track-mode .runner-marker {
   .profile-grid,
   .profile-overview,
   .profile-fields,
+  .coach-profile-form,
   .summary-grid,
   .summary-tables,
   .receipt-fields,
@@ -1386,6 +1431,7 @@ h2,
 .summary-map,
 .data-table,
 .profile-card,
+.coach-profile-card,
 .auth-card,
 .home-tile,
 .receipt-builder,
@@ -1429,6 +1475,7 @@ select,
 .receipt-fields textarea,
 .notes-box textarea,
 .profile-fields input,
+.coach-profile-form input,
 .profile-fields textarea,
 .runner-name-form input,
 .auth-form input,

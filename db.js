@@ -139,6 +139,18 @@ export async function getCoachById(coachId) {
   return mapCoach(result.rows[0]);
 }
 
+export async function updateCoachProfile(coachId, { displayName }) {
+  const result = await query(
+    `update coaches
+     set display_name = $2,
+         updated_at = now()
+     where id = $1
+     returning *`,
+    [coachId, displayName || "Coach"],
+  );
+  return mapCoach(result.rows[0]);
+}
+
 export async function saveCoachLogin({ email, displayName, passwordHash }) {
   const result = await query(
     `insert into coaches (email, display_name, password_hash)

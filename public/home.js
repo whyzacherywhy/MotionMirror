@@ -1,15 +1,15 @@
 async function updateHomeAuth() {
-  const welcome = document.querySelector("#coachWelcome");
   const loginLink = document.querySelector("#coachLoginLink");
+  const profileLink = document.querySelector("#coachProfileLink");
+  const signOutButton = document.querySelector("#coachSignOutButton");
   const response = await fetch("/api/auth/me");
   if (!response.ok) return;
   const state = await response.json();
   if (!state.authenticated) return;
 
-  const firstName = String(state.coach?.displayName || "Coach").trim().split(/\s+/)[0] || "Coach";
-  welcome.textContent = `Welcome, Coach ${firstName}`;
-  welcome.hidden = false;
   loginLink.hidden = true;
+  profileLink.hidden = false;
+  signOutButton.hidden = false;
 }
 
 updateHomeAuth().catch(() => {});

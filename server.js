@@ -20,6 +20,7 @@ import {
   saveCoachLogin,
   setupRequired,
   suggestedCoach,
+  updateCoachProfile,
   updateLiveSessionStatus,
   updateProfile,
   updateRunNotes,
@@ -344,6 +345,7 @@ function safeFilePath(urlPath) {
     "/profile": "/profile.html",
     "/run": "/run.html",
     "/login": "/login.html",
+    "/coach-profile": "/coach-profile.html",
   };
   const requested = urlPath === "/" ? "/index.html" : aliases[urlPath] || urlPath;
   const clean = normalize(decodeURIComponent(requested)).replace(/^(\.\.[/\\])+/, "");
@@ -407,6 +409,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && url.pathname === "/api/auth/logout") {
       clearCoachCookie(res);
       return json(res, 200, { ok: true });
+    }
+
+    if (req.method === "PATCH" && url.pathname === "/api/auth/profile") {
+      if (!hasDatabase) return databaseUnavailable(res);
+      if (!coach) return authRequired(res);
+      const body = await readBody(req);
+      const displayName = String(body.displayName || "").trim();
+      if (!displayName) return json(res, 400, { error: "Enter your coach name." });
+      const updated = await updateCoachProfile(coach.id, { displayName });
+      return json(res, 200, { coach: updated });
     }
 
     if (req.method === "GET" && url.pathname === "/api/sessions") {

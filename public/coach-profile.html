@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coach Profile</title>
+    <link rel="stylesheet" href="/coach-lab.css" />
+  </head>
+  <body class="archive-body">
+    <main class="archive-shell">
+      <header class="archive-topbar">
+        <div>
+          <p>Motion Mirror</p>
+          <h1>Coach profile</h1>
+        </div>
+        <nav class="archive-nav">
+          <a href="/">Home</a>
+          <a href="/coach">Coach</a>
+          <a href="/profiles.html">Profiles</a>
+          <button data-logout>Sign out</button>
+        </nav>
+      </header>
+
+      <section class="coach-profile-card">
+        <div>
+          <p>Account</p>
+          <h2>Your coach profile</h2>
+          <span>Update the name that appears on saved receipts and coach-generated reports.</span>
+        </div>
+
+        <form id="coachProfileForm" class="coach-profile-form">
+          <label>
+            First name
+            <input id="coachFirstName" autocomplete="given-name" required />
+          </label>
+          <label>
+            Last name
+            <input id="coachLastName" autocomplete="family-name" />
+          </label>
+          <label class="wide-field">
+            Email
+            <input id="coachEmail" type="email" readonly />
+          </label>
+          <button class="primary" type="submit">Save coach profile</button>
+        </form>
+
+        <section class="coach-profile-note">
+          <p>Later</p>
+          <span>Good future adds here: profile photo, business name, coaching bio, default receipt message, and subscription status.</span>
+        </section>
+
+        <p id="coachProfileMessage" class="auth-message"></p>
+      </section>
+    </main>
+
+    <script src="/theme.js"></script>
+    <script src="/session.js"></script>
+    <script src="/coach-profile.js"></script>
+  </body>
+</html>
