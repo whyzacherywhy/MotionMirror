@@ -496,12 +496,15 @@ function receiptHeading(ctx, text, y, margin) {
 }
 
 function receiptRoute(ctx, route, y, margin, mapWidth) {
-  const mapHeight = 320;
-  ctx.strokeRect(margin, y, mapWidth, mapHeight);
+  const pad = 14;
+  let mapHeight = 220;
+  let boxWidth = mapWidth;
+  let boxX = margin;
   if (route.length < 2) {
+    ctx.strokeRect(boxX, y, boxWidth, mapHeight);
     ctx.font = "700 24px Courier New, monospace";
     ctx.textAlign = "center";
-    ctx.fillText("NO ROUTE", margin + mapWidth / 2, y + mapHeight / 2);
+    ctx.fillText("NO ROUTE", boxX + boxWidth / 2, y + mapHeight / 2);
     ctx.textAlign = "left";
     return y + mapHeight + 26;
   }
@@ -520,11 +523,27 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   const maxY = Math.max(...ys);
   const xRange = maxX - minX || 1;
   const yRange = maxY - minY || 1;
-  const pad = 14;
-  const scale = Math.min((mapWidth - pad * 2) / xRange, (mapHeight - pad * 2) / yRange);
+  const routeAspect = xRange / yRange;
+  const minMapHeight = 160;
+  const maxMapHeight = 620;
+  const minBoxWidth = 180;
+  const maxDrawableWidth = mapWidth - pad * 2;
+
+  if (routeAspect >= 1) {
+    boxWidth = mapWidth;
+    mapHeight = Math.max(minMapHeight, Math.min(maxMapHeight, maxDrawableWidth / routeAspect + pad * 2));
+  } else {
+    mapHeight = Math.max(minMapHeight, Math.min(maxMapHeight, maxDrawableWidth / routeAspect + pad * 2));
+    boxWidth = Math.max(minBoxWidth, Math.min(mapWidth, (mapHeight - pad * 2) * routeAspect + pad * 2));
+    boxX = margin + (mapWidth - boxWidth) / 2;
+  }
+
+  ctx.strokeRect(boxX, y, boxWidth, mapHeight);
+
+  const scale = Math.min((boxWidth - pad * 2) / xRange, (mapHeight - pad * 2) / yRange);
   const routeWidth = xRange * scale;
   const routeHeight = yRange * scale;
-  const xOffset = margin + (mapWidth - routeWidth) / 2;
+  const xOffset = boxX + (boxWidth - routeWidth) / 2;
   const yOffset = y + (mapHeight - routeHeight) / 2;
 
   function mapPoint(point) {
