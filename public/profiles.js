@@ -559,7 +559,7 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   }
 
   let best = null;
-  for (let degrees = 0; degrees < 180; degrees += 1) {
+  for (let degrees = -89; degrees <= 89; degrees += 1) {
     const angle = (degrees * Math.PI) / 180;
     const rotated = rotatePoints(projected, angle);
     const bounds = boundsFor(rotated);
