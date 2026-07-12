@@ -588,8 +588,12 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
     if (index === 0) ctx.moveTo(routePoint.x, routePoint.y);
     else ctx.lineTo(routePoint.x, routePoint.y);
   });
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
   ctx.lineWidth = 5;
   ctx.stroke();
+  ctx.lineCap = "butt";
+  ctx.lineJoin = "miter";
   ctx.lineWidth = 2;
   const start = mapPoint(rotated[0]);
   const finish = mapPoint(rotated.at(-1));
@@ -614,7 +618,7 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
 function smoothReceiptRoute(points) {
   if (points.length < 4) return points;
   let smoothed = points;
-  for (let iteration = 0; iteration < 2; iteration += 1) {
+  for (let iteration = 0; iteration < 4; iteration += 1) {
     const next = [smoothed[0]];
     for (let index = 0; index < smoothed.length - 1; index += 1) {
       const current = smoothed[index];
