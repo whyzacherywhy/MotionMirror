@@ -422,7 +422,7 @@ function drawReceiptCanvas(profile, run, receipt, receiptAssets) {
   ctx.font = "900 20px Courier New, monospace";
   ctx.textAlign = "center";
   ctx.fillText(`COACHED BY ${String(receipt.coachName || "COACH").toUpperCase()}`, width / 2, y + 20);
-  y += 42;
+  y += 30;
   y = receiptDivider(ctx, y, width, margin);
 
   ctx.textAlign = "left";
@@ -462,9 +462,8 @@ function drawReceiptCanvas(profile, run, receipt, receiptAssets) {
   y = receiptBlock(ctx, "COACH NOTES / REFLECTION", receipt.notes, y, margin, width);
   y = receiptDivider(ctx, y, width, margin);
   y = receiptBlock(ctx, "HOMEWORK FOR RUNNER", receipt.takeaway, y, margin, width);
-  y = receiptDivider(ctx, y, width, margin);
 
-  y = receiptCheckerboard(ctx, y + 2, width, margin);
+  y = receiptCheckerboard(ctx, y + 22, width, margin);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
