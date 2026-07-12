@@ -328,6 +328,56 @@ function setupSavedTextBox({ textarea, button, editLabel, saveLabel, onSave }) {
 
 let receiptAssetsPromise;
 let coachNamePromise;
+const receiptQuoteStorageKey = "motionMirror.lastReceiptQuote";
+const receiptQuotes = [
+  "This is living.",
+  "What a gift.",
+  "Keep it going.",
+  "See you next run.",
+  "One more mile.",
+  "Forward.",
+  "Keep showing up.",
+  "Keep exploring.",
+  "Keep moving.",
+  "Trust the process.",
+  "Stay curious.",
+  "Another page written.",
+  "The work is working.",
+  "Stay the course.",
+  "Onward.",
+  "Every run matters.",
+  "Tiny steps. Big miles.",
+  "Momentum builds.",
+  "You were here.",
+  "Another story told.",
+  "Adventure awaits.",
+  "Breathe. Then go.",
+  "Find your rhythm.",
+  "The trail remembers.",
+  "Strong looks different every day.",
+  "Keep chasing tomorrow.",
+  "Motion creates momentum.",
+  "Run with intention.",
+  "One foot. Then another.",
+  "The miles add up.",
+  "You belong here.",
+  "The next run starts now.",
+  "Progress loves patience.",
+  "Consistency wins.",
+  "Never waste good legs.",
+  "Your future self noticed.",
+  "This wasn't luck.",
+  "The quiet work counts.",
+  "Keep the promise.",
+  "The path continues.",
+  "North is waiting.",
+  "Every finish becomes a start.",
+  "Nothing changes if nothing changes.",
+  "Take the long way home.",
+  "One run closer.",
+  "The mirror remembers.",
+  "We'll be here.",
+];
 
 function loadTransparentImage(src) {
   return new Promise((resolve, reject) => {
@@ -354,6 +404,23 @@ function loadCoachName() {
   return coachNamePromise;
 }
 
+function randomReceiptQuote() {
+  let lastQuote = "";
+  try {
+    lastQuote = localStorage.getItem(receiptQuoteStorageKey) || "";
+  } catch {
+    lastQuote = "";
+  }
+  const choices = receiptQuotes.length > 1 ? receiptQuotes.filter((quote) => quote !== lastQuote) : receiptQuotes;
+  const quote = choices[Math.floor(Math.random() * choices.length)] || receiptQuotes[0];
+  try {
+    localStorage.setItem(receiptQuoteStorageKey, quote);
+  } catch {
+    // Ignore private browsing/storage failures; the quote can still render.
+  }
+  return quote;
+}
+
 async function downloadReceipt(profile, run, notes, takeaway, format) {
   if (!notes.value.trim()) {
     alert("Add coach notes/reflection before downloading the receipt.");
@@ -371,6 +438,7 @@ async function downloadReceipt(profile, run, notes, takeaway, format) {
     notes: notes.value.trim(),
     takeaway: takeaway.value.trim(),
     coachName,
+    quote: randomReceiptQuote(),
   }, receiptAssets);
   const link = document.createElement("a");
   const safeName = (profile.name || "runner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -462,6 +530,7 @@ function drawReceiptCanvas(profile, run, receipt, receiptAssets) {
   y = receiptBlock(ctx, "NEXT STEPS", receipt.takeaway, y, margin, width);
 
   y = receiptCheckerboard(ctx, y + 10, width, margin);
+  y = receiptQuote(ctx, receipt.quote, y + 36, width);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -491,6 +560,16 @@ function receiptCheckerboard(ctx, y, width, margin, bottomGap = 34) {
   }
   ctx.restore();
   return y + rows * square + bottomGap;
+}
+
+function receiptQuote(ctx, quote, y, width) {
+  ctx.save();
+  ctx.fillStyle = "#000000";
+  ctx.font = "700 18px Courier New, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(String(quote || "Forward."), width / 2, y);
+  ctx.restore();
+  return y + 32;
 }
 
 function receiptLine(ctx, label, value, y, margin) {
