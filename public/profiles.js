@@ -421,7 +421,7 @@ function drawReceiptCanvas(profile, run, receipt, receiptAssets) {
   ctx.textAlign = "center";
   ctx.fillText(`COACHED BY ${String(receipt.coachName || "COACH").toUpperCase()}`, width / 2, y + 20);
   y += 30;
-  y = receiptDivider(ctx, y, width, margin);
+  y = receiptCheckerboard(ctx, y, width, margin, 18);
 
   ctx.textAlign = "left";
   y = receiptLine(ctx, "RUNNER", profile.name || "Runner", y, margin);
@@ -461,7 +461,7 @@ function drawReceiptCanvas(profile, run, receipt, receiptAssets) {
   y = receiptDivider(ctx, y, width, margin);
   y = receiptBlock(ctx, "HOMEWORK FOR RUNNER", receipt.takeaway, y, margin, width);
 
-  y = receiptCheckerboard(ctx, y + 22, width, margin);
+  y = receiptCheckerboard(ctx, y + 10, width, margin);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -477,7 +477,7 @@ function receiptDivider(ctx, y, width, margin) {
   return y + 54;
 }
 
-function receiptCheckerboard(ctx, y, width, margin) {
+function receiptCheckerboard(ctx, y, width, margin, bottomGap = 34) {
   const square = 18;
   const rows = 2;
   const columns = Math.floor((width - margin * 2) / square);
@@ -490,7 +490,7 @@ function receiptCheckerboard(ctx, y, width, margin) {
     }
   }
   ctx.restore();
-  return y + rows * square + 34;
+  return y + rows * square + bottomGap;
 }
 
 function receiptLine(ctx, label, value, y, margin) {
