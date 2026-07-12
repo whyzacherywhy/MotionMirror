@@ -421,7 +421,7 @@ function drawReceiptCanvas(profile, run, receipt, receiptAssets) {
   ctx.textAlign = "center";
   ctx.fillText(`COACHED BY ${String(receipt.coachName || "COACH").toUpperCase()}`, width / 2, y + 20);
   y += 30;
-  y = receiptCheckerboard(ctx, y, width, margin, 18);
+  y = receiptCheckerboard(ctx, y, width, margin, 34);
 
   ctx.textAlign = "left";
   y = receiptLine(ctx, "RUNNER", profile.name || "Runner", y, margin);
