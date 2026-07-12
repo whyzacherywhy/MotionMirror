@@ -119,7 +119,7 @@ async function ensureDefaultCoach() {
   await query(
     `insert into coaches (email, display_name)
      values ($1, $2)
-     on conflict (email) do update set display_name = excluded.display_name, updated_at = now()`,
+     on conflict (email) do nothing`,
     [email, displayName],
   );
 }
