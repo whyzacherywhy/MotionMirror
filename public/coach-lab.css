@@ -867,9 +867,26 @@ body.track-mode .runner-marker {
   flex-wrap: wrap;
 }
 
+.home-wordmark {
+  width: min(1180px, 100%);
+  margin: 38px auto 0;
+  color: var(--text);
+  text-align: center;
+}
+
+.home-wordmark span {
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3rem, 10vw, 7.4rem);
+  font-weight: 950;
+  line-height: 0.86;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 .home-grid {
   width: min(1180px, 100%);
-  margin: 36px auto 0;
+  margin: 34px auto 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
