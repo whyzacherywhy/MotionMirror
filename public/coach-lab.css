@@ -842,6 +842,7 @@ body.track-mode .runner-marker {
 }
 
 .archive-topbar {
+  position: relative;
   min-height: 72px;
   border-bottom: 1px solid var(--line);
   margin-bottom: 18px;
@@ -868,16 +869,20 @@ body.track-mode .runner-marker {
 }
 
 .home-wordmark {
-  width: min(1180px, 100%);
-  margin: 38px auto 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(280px, 44vw);
+  transform: translate(-50%, -50%);
   color: var(--text);
   text-align: center;
+  pointer-events: none;
 }
 
 .home-wordmark span {
   display: block;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3rem, 10vw, 7.4rem);
+  font-size: clamp(1.35rem, 3vw, 2.05rem);
   font-weight: 950;
   line-height: 0.86;
   letter-spacing: 0;
