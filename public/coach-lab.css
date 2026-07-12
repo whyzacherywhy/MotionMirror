@@ -510,23 +510,17 @@ p {
 
 .map-stage::after,
 .summary-map::after {
-  content: "N\A ↑";
-  white-space: pre;
+  content: "";
   position: absolute;
   right: 14px;
   z-index: 520;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: var(--panel-soft);
-  color: var(--text);
-  display: grid;
-  place-items: center;
-  font: 900 13px/0.9 Helvetica, Arial, sans-serif;
-  text-align: center;
+  width: 44px;
+  height: 44px;
+  background:
+    linear-gradient(to top, var(--text) 0 50%, var(--panel-soft) 50% 100%);
+  clip-path: polygon(50% 0, 59% 38%, 100% 50%, 59% 62%, 50% 100%, 41% 62%, 0 50%, 41% 38%);
   pointer-events: none;
-  box-shadow: 0 12px 30px var(--shadow);
+  filter: drop-shadow(0 12px 18px var(--shadow));
 }
 
 .map-stage::after {

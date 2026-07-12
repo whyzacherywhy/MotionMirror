@@ -581,9 +581,17 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   ctx.lineWidth = 2;
   const start = mapPoint(rotated[0]);
   const finish = mapPoint(rotated.at(-1));
+  ctx.fillStyle = "#fbf5df";
   ctx.beginPath();
-  ctx.arc(start.x, start.y, 7, 0, Math.PI * 2);
+  ctx.arc(start.x, start.y, 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(start.x, start.y, 8, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(finish.x, finish.y, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#06183a";
   ctx.beginPath();
   ctx.arc(finish.x, finish.y, 7, 0, Math.PI * 2);
   ctx.fill();
@@ -593,36 +601,63 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
 }
 
 function drawReceiptCompass(ctx, x, y, routeRotation) {
-  const radius = 22;
-  const north = {
+  const northVector = {
     x: -Math.sin(routeRotation),
     y: -Math.cos(routeRotation),
   };
-  const tip = {
-    x: x + north.x * 15,
-    y: y + north.y * 15,
-  };
-  const tail = {
-    x: x - north.x * 8,
-    y: y - north.y * 8,
-  };
+  const northAngle = Math.atan2(northVector.y, northVector.x);
+  const outer = 24;
+  const inner = 9;
+  const points = Array.from({ length: 8 }, (_, index) => {
+    const angle = northAngle + (index * Math.PI) / 4;
+    const radius = index % 2 === 0 ? outer : inner;
+    return {
+      x: x + Math.cos(angle) * radius,
+      y: y + Math.sin(angle) * radius,
+    };
+  });
 
   ctx.save();
+  ctx.fillStyle = "#fbf5df";
+  ctx.beginPath();
+  ctx.arc(x, y, 28, 0, Math.PI * 2);
+  ctx.fill();
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(tail.x, tail.y);
-  ctx.lineTo(tip.x, tip.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+  points.forEach((point, index) => {
+    if (index === 0) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = "#fbf5df";
   ctx.fill();
-  ctx.font = "900 15px Courier New, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("N", x + north.x * 28, y + north.y * 28);
+  ctx.stroke();
+
+  const east = points[2];
+  const south = points[4];
+  const west = points[6];
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(east.x, east.y);
+  ctx.lineTo(south.x, south.y);
+  ctx.lineTo(west.x, west.y);
+  ctx.closePath();
+  ctx.fillStyle = "#06183a";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(points[0].x, points[0].y);
+  ctx.lineTo(points[1].x, points[1].y);
+  ctx.closePath();
+  ctx.fillStyle = "#06183a";
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, 3, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
