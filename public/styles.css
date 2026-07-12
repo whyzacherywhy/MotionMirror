@@ -720,6 +720,27 @@ code {
   border-top: 1px solid var(--runner-line);
 }
 
+.runner-map::after {
+  content: "N\A ↑";
+  white-space: pre;
+  position: absolute;
+  right: 14px;
+  bottom: 72px;
+  z-index: 520;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--runner-line);
+  border-radius: 50%;
+  background: var(--runner-panel);
+  color: var(--runner-text);
+  display: grid;
+  place-items: center;
+  font: 900 13px/0.9 Helvetica, Arial, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
 .runner-map.is-hidden {
   display: none;
 }

@@ -508,6 +508,31 @@ p {
   min-height: 0;
 }
 
+.map-stage::after,
+.summary-map::after {
+  content: "N\A ↑";
+  white-space: pre;
+  position: absolute;
+  right: 14px;
+  z-index: 520;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--panel-soft);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  font: 900 13px/0.9 Helvetica, Arial, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 12px 30px var(--shadow);
+}
+
+.map-stage::after {
+  bottom: 92px;
+}
+
 #map {
   position: absolute;
   inset: 0;
@@ -1142,11 +1167,16 @@ body.track-mode .runner-marker {
 }
 
 .summary-map {
+  position: relative;
   min-height: 460px;
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
   background: #05080b;
+}
+
+.summary-map::after {
+  bottom: 14px;
 }
 
 .summary-panel {

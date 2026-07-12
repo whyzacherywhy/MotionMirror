@@ -497,14 +497,12 @@ function receiptHeading(ctx, text, y, margin) {
 
 function receiptRoute(ctx, route, y, margin, mapWidth) {
   const pad = 14;
-  let mapHeight = 220;
-  let boxWidth = mapWidth;
-  let boxX = margin;
+  let mapHeight = 180;
   if (route.length < 2) {
-    ctx.strokeRect(boxX, y, boxWidth, mapHeight);
+    ctx.strokeRect(margin, y, mapWidth, mapHeight);
     ctx.font = "700 24px Courier New, monospace";
     ctx.textAlign = "center";
-    ctx.fillText("NO ROUTE", boxX + boxWidth / 2, y + mapHeight / 2);
+    ctx.fillText("NO ROUTE", margin + mapWidth / 2, y + mapHeight / 2);
     ctx.textAlign = "left";
     return y + mapHeight + 26;
   }
@@ -515,35 +513,54 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
     x: point.lng * metersPerLng,
     y: point.lat * 110540,
   }));
-  const xs = projected.map((point) => point.x);
-  const ys = projected.map((point) => point.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const xRange = maxX - minX || 1;
-  const yRange = maxY - minY || 1;
-  const routeAspect = xRange / yRange;
   const minMapHeight = 160;
-  const maxMapHeight = 620;
-  const minBoxWidth = 180;
   const maxDrawableWidth = mapWidth - pad * 2;
 
-  if (routeAspect >= 1) {
-    boxWidth = mapWidth;
-    mapHeight = Math.max(minMapHeight, Math.min(maxMapHeight, maxDrawableWidth / routeAspect + pad * 2));
-  } else {
-    mapHeight = Math.max(minMapHeight, Math.min(maxMapHeight, maxDrawableWidth / routeAspect + pad * 2));
-    boxWidth = Math.max(minBoxWidth, Math.min(mapWidth, (mapHeight - pad * 2) * routeAspect + pad * 2));
-    boxX = margin + (mapWidth - boxWidth) / 2;
+  function rotatePoints(points, angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return points.map((point) => ({
+      x: point.x * cos - point.y * sin,
+      y: point.x * sin + point.y * cos,
+    }));
   }
 
-  ctx.strokeRect(boxX, y, boxWidth, mapHeight);
+  function boundsFor(points) {
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return {
+      minX,
+      maxX,
+      minY,
+      maxY,
+      width: maxX - minX || 1,
+      height: maxY - minY || 1,
+    };
+  }
 
-  const scale = Math.min((boxWidth - pad * 2) / xRange, (mapHeight - pad * 2) / yRange);
-  const routeWidth = xRange * scale;
-  const routeHeight = yRange * scale;
-  const xOffset = boxX + (boxWidth - routeWidth) / 2;
+  let best = null;
+  for (let degrees = 0; degrees < 180; degrees += 1) {
+    const angle = (degrees * Math.PI) / 180;
+    const rotated = rotatePoints(projected, angle);
+    const bounds = boundsFor(rotated);
+    const height = bounds.height * (maxDrawableWidth / bounds.width) + pad * 2;
+    if (!best || height < best.height) best = { angle, rotated, bounds, height };
+  }
+
+  const rotated = best.rotated;
+  const { minX, maxX, minY, maxY, width: routeWidthMeters, height: routeHeightMeters } = best.bounds;
+  mapHeight = Math.max(minMapHeight, best.height);
+
+  ctx.strokeRect(margin, y, mapWidth, mapHeight);
+
+  const scale = Math.min((mapWidth - pad * 2) / routeWidthMeters, (mapHeight - pad * 2) / routeHeightMeters);
+  const routeWidth = routeWidthMeters * scale;
+  const routeHeight = routeHeightMeters * scale;
+  const xOffset = margin + (mapWidth - routeWidth) / 2;
   const yOffset = y + (mapHeight - routeHeight) / 2;
 
   function mapPoint(point) {
@@ -554,7 +571,7 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   }
 
   ctx.beginPath();
-  projected.forEach((point, index) => {
+  rotated.forEach((point, index) => {
     const routePoint = mapPoint(point);
     if (index === 0) ctx.moveTo(routePoint.x, routePoint.y);
     else ctx.lineTo(routePoint.x, routePoint.y);
@@ -562,16 +579,51 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   ctx.lineWidth = 5;
   ctx.stroke();
   ctx.lineWidth = 2;
-  const start = mapPoint(projected[0]);
-  const finish = mapPoint(projected.at(-1));
+  const start = mapPoint(rotated[0]);
+  const finish = mapPoint(rotated.at(-1));
   ctx.beginPath();
   ctx.arc(start.x, start.y, 7, 0, Math.PI * 2);
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(finish.x, finish.y, 7, 0, Math.PI * 2);
   ctx.fill();
+  drawReceiptCompass(ctx, margin + mapWidth - 42, y + mapHeight - 42, best.angle);
   ctx.textAlign = "left";
   return y + mapHeight + 30;
+}
+
+function drawReceiptCompass(ctx, x, y, routeRotation) {
+  const radius = 22;
+  const north = {
+    x: -Math.sin(routeRotation),
+    y: -Math.cos(routeRotation),
+  };
+  const tip = {
+    x: x + north.x * 15,
+    y: y + north.y * 15,
+  };
+  const tail = {
+    x: x - north.x * 8,
+    y: y - north.y * 8,
+  };
+
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(tail.x, tail.y);
+  ctx.lineTo(tip.x, tip.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = "900 15px Courier New, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("N", x + north.x * 28, y + north.y * 28);
+  ctx.restore();
 }
 
 function receiptSplits(ctx, rows, y, margin, mapper) {
