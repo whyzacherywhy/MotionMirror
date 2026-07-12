@@ -240,10 +240,9 @@ async function renderRunPage() {
       notes.focus();
       return;
     }
-    await updateRunNotes(profile.id, run.id, notes.value, receiptHomework?.value || run.homework || "");
+    await updateRunNotes(profile.id, run.id, notes.value, run.receiptNotes || "", receiptHomework?.value || run.homework || "");
     run.notes = notes.value;
     run.homework = receiptHomework?.value || run.homework || "";
-    if (receiptNotes) receiptNotes.value = run.notes;
     setNotesEditing(false);
     notesButton.textContent = "Saved";
     setTimeout(() => (notesButton.textContent = "Edit notes"), 900);
@@ -276,7 +275,7 @@ function setupReceiptDownload(profile, run, fields) {
   const pngButton = document.querySelector("#downloadReceiptPng");
   if (!notes || !takeaway || !jpgButton || !pngButton) return;
 
-  notes.value = fields.notesInput.value || run.notes || "";
+  notes.value = run.receiptNotes || "";
   takeaway.value = run.homework || "";
   setupSavedTextBox({
     textarea: notes,
@@ -284,9 +283,8 @@ function setupReceiptDownload(profile, run, fields) {
     editLabel: "Edit notes",
     saveLabel: "Save notes",
     onSave: async () => {
-      fields.notesInput.value = notes.value;
-      run.notes = notes.value;
-      await updateRunNotes(profile.id, run.id, notes.value, takeaway.value);
+      run.receiptNotes = notes.value;
+      await updateRunNotes(profile.id, run.id, fields.notesInput.value, notes.value, takeaway.value);
     },
   });
   setupSavedTextBox({
@@ -296,7 +294,7 @@ function setupReceiptDownload(profile, run, fields) {
     saveLabel: "Save homework",
     onSave: async () => {
       run.homework = takeaway.value;
-      await updateRunNotes(profile.id, run.id, notes.value, takeaway.value);
+      await updateRunNotes(profile.id, run.id, fields.notesInput.value, notes.value, takeaway.value);
     },
   });
 

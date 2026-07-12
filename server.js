@@ -497,6 +497,7 @@ const server = http.createServer(async (req, res) => {
         profileRunNotesMatch[2],
         coach.id,
         body.notes || "",
+        body.receiptNotes || "",
         body.homework || "",
       );
       if (!run) return json(res, 404, { error: "Run not found." });

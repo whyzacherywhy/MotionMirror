@@ -36,6 +36,7 @@ create table if not exists run_entries (
   elevation_loss_feet integer not null default 0,
   weather jsonb not null default '{}'::jsonb,
   notes text not null default '',
+  receipt_notes text not null default '',
   homework text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -111,4 +112,5 @@ alter table run_mile_splits add column if not exists is_partial boolean not null
 alter table run_coach_splits add column if not exists distance_meters numeric(10, 2) not null default 0;
 alter table coaches add column if not exists password_hash text;
 alter table live_sessions add column if not exists mode text not null default 'free';
+alter table run_entries add column if not exists receipt_notes text not null default '';
 alter table run_entries add column if not exists homework text not null default '';

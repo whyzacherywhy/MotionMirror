@@ -148,6 +148,7 @@ function saveLocalRunToProfile(profileIdValue, run) {
     id: run.id || runId(),
     savedAt: Date.now(),
     notes: run.notes || "",
+    receiptNotes: run.receiptNotes || "",
     homework: run.homework || "",
   });
   profile.runs.sort((a, b) => (b.startedAt || b.savedAt || 0) - (a.startedAt || a.savedAt || 0));
@@ -167,27 +168,28 @@ async function loadRun(profileIdValue, runIdValue) {
   }
 }
 
-async function updateRunNotes(profileIdValue, runIdValue, notes, homework = "") {
+async function updateRunNotes(profileIdValue, runIdValue, notes, receiptNotes = "", homework = "") {
   try {
     const payload = await apiJson(
       `/api/profiles/${encodeURIComponent(profileIdValue)}/runs/${encodeURIComponent(runIdValue)}/notes`,
       {
         method: "PATCH",
-        body: JSON.stringify({ notes, homework }),
+        body: JSON.stringify({ notes, receiptNotes, homework }),
       },
     );
     return payload.run;
   } catch {
-    return updateLocalRunNotes(profileIdValue, runIdValue, notes, homework);
+    return updateLocalRunNotes(profileIdValue, runIdValue, notes, receiptNotes, homework);
   }
 }
 
-function updateLocalRunNotes(profileIdValue, runIdValue, notes, homework = "") {
+function updateLocalRunNotes(profileIdValue, runIdValue, notes, receiptNotes = "", homework = "") {
   const profiles = loadLocalProfiles();
   const profile = profiles.find((item) => item.id === profileIdValue);
   const run = profile?.runs?.find((item) => item.id === runIdValue);
   if (!run) return null;
   run.notes = notes;
+  run.receiptNotes = receiptNotes;
   run.homework = homework;
   run.notesUpdatedAt = Date.now();
   saveLocalProfiles(profiles);
@@ -433,6 +435,7 @@ function buildRunSummary(session, weather) {
     })),
     history: [],
     notes: "",
+    receiptNotes: "",
     homework: "",
   };
   summary.history = buildHistoryRows(session, summary);
