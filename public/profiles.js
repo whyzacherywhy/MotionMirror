@@ -612,7 +612,7 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   ctx.beginPath();
   ctx.arc(finish.x, finish.y, 7, 0, Math.PI * 2);
   ctx.fill();
-  drawReceiptCompass(ctx, margin + mapWidth - 42, y + mapHeight - 42, best.angle);
+  drawReceiptCompass(ctx, margin + mapWidth - 48, y + mapHeight - 48, best.angle);
   ctx.textAlign = "left";
   return y + mapHeight + 30;
 }
@@ -623,58 +623,62 @@ function drawReceiptCompass(ctx, x, y, routeRotation) {
     y: -Math.cos(routeRotation),
   };
   const northAngle = Math.atan2(northVector.y, northVector.x);
-  const outer = 24;
-  const inner = 9;
-  const points = Array.from({ length: 8 }, (_, index) => {
-    const angle = northAngle + (index * Math.PI) / 4;
-    const radius = index % 2 === 0 ? outer : inner;
+
+  function point(angle, distance) {
     return {
-      x: x + Math.cos(angle) * radius,
-      y: y + Math.sin(angle) * radius,
+      x: x + Math.cos(angle) * distance,
+      y: y + Math.sin(angle) * distance,
     };
-  });
+  }
+
+  function drawShape(points, fill) {
+    ctx.beginPath();
+    points.forEach((shapePoint, index) => {
+      if (index === 0) ctx.moveTo(shapePoint.x, shapePoint.y);
+      else ctx.lineTo(shapePoint.x, shapePoint.y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  const rightAngle = northAngle + Math.PI / 2;
+  const southAngle = northAngle + Math.PI;
+  const westAngle = northAngle - Math.PI / 2;
+  const northLong = 42;
+  const sideLong = 34;
+  const southLong = 38;
+  const shortLong = 19;
+  const center = { x, y };
+  const white = "#fbf5df";
+  const ink = "#06183a";
 
   ctx.save();
-  ctx.fillStyle = "#fbf5df";
-  ctx.beginPath();
-  ctx.arc(x, y, 28, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  points.forEach((point, index) => {
-    if (index === 0) ctx.moveTo(point.x, point.y);
-    else ctx.lineTo(point.x, point.y);
-  });
-  ctx.closePath();
-  ctx.fillStyle = "#fbf5df";
-  ctx.fill();
-  ctx.stroke();
+  ctx.lineJoin = "miter";
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = "#ffffff";
+  [
+    [center, point(northAngle - 0.13, northLong), point(northAngle, northLong + 6), point(northAngle + 0.13, northLong)],
+    [center, point(rightAngle - 0.12, sideLong), point(rightAngle, sideLong + 16), point(rightAngle + 0.12, sideLong)],
+    [center, point(southAngle - 0.12, southLong), point(southAngle, southLong + 6), point(southAngle + 0.12, southLong)],
+    [center, point(westAngle - 0.12, sideLong), point(westAngle, sideLong + 16), point(westAngle + 0.12, sideLong)],
+    [center, point(northAngle + Math.PI / 4 - 0.17, shortLong), point(northAngle + Math.PI / 4, shortLong + 6), point(northAngle + Math.PI / 4 + 0.17, shortLong)],
+    [center, point(northAngle + (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle + (Math.PI * 3) / 4, shortLong + 6), point(northAngle + (Math.PI * 3) / 4 + 0.17, shortLong)],
+    [center, point(northAngle - Math.PI / 4 - 0.17, shortLong), point(northAngle - Math.PI / 4, shortLong + 6), point(northAngle - Math.PI / 4 + 0.17, shortLong)],
+    [center, point(northAngle - (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle - (Math.PI * 3) / 4, shortLong + 6), point(northAngle - (Math.PI * 3) / 4 + 0.17, shortLong)],
+  ].forEach((shape) => drawShape(shape, white));
 
-  const east = points[2];
-  const south = points[4];
-  const west = points[6];
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(east.x, east.y);
-  ctx.lineTo(south.x, south.y);
-  ctx.lineTo(west.x, west.y);
-  ctx.closePath();
-  ctx.fillStyle = "#06183a";
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(points[0].x, points[0].y);
-  ctx.lineTo(points[1].x, points[1].y);
-  ctx.closePath();
-  ctx.fillStyle = "#06183a";
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = ink;
+  drawShape([center, point(northAngle - 0.13, northLong), point(northAngle, northLong + 6), point(northAngle + 0.13, northLong)], ink);
+  drawShape([center, point(rightAngle - 0.12, sideLong), point(rightAngle, sideLong + 16), point(rightAngle + 0.12, sideLong)], white);
+  drawShape([center, point(southAngle - 0.12, southLong), point(southAngle, southLong + 6), point(southAngle + 0.12, southLong)], white);
+  drawShape([center, point(westAngle - 0.12, sideLong), point(westAngle, sideLong + 16), point(westAngle + 0.12, sideLong)], white);
+  drawShape([center, point(northAngle + Math.PI / 4 - 0.17, shortLong), point(northAngle + Math.PI / 4, shortLong + 6), point(northAngle + Math.PI / 4 + 0.17, shortLong)], white);
+  drawShape([center, point(northAngle + (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle + (Math.PI * 3) / 4, shortLong + 6), point(northAngle + (Math.PI * 3) / 4 + 0.17, shortLong)], white);
+  drawShape([center, point(northAngle - Math.PI / 4 - 0.17, shortLong), point(northAngle - Math.PI / 4, shortLong + 6), point(northAngle - Math.PI / 4 + 0.17, shortLong)], white);
+  drawShape([center, point(northAngle - (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle - (Math.PI * 3) / 4, shortLong + 6), point(northAngle - (Math.PI * 3) / 4 + 0.17, shortLong)], white);
   ctx.restore();
 }
 

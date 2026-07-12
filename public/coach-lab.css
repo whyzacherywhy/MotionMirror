@@ -514,13 +514,11 @@ p {
   position: absolute;
   right: 14px;
   z-index: 520;
-  width: 44px;
-  height: 44px;
-  background:
-    linear-gradient(to top, var(--text) 0 50%, var(--panel-soft) 50% 100%);
-  clip-path: polygon(50% 0, 59% 38%, 100% 50%, 59% 62%, 50% 100%, 41% 62%, 0 50%, 41% 38%);
+  width: 54px;
+  height: 54px;
+  background: url("/compass-star.svg") center / contain no-repeat;
   pointer-events: none;
-  filter: drop-shadow(0 12px 18px var(--shadow));
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.34));
 }
 
 .map-stage::after {
