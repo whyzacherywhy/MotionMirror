@@ -628,54 +628,42 @@ function drawReceiptCompass(ctx, x, y, routeRotation) {
     };
   }
 
-  function drawShape(points, fill) {
+  function drawArrow(fill, stroke, lineWidth) {
+    const tip = point(northAngle, 22);
+    const leftHead = point(northAngle + Math.PI - 0.54, 8);
+    const rightHead = point(northAngle + Math.PI + 0.54, 8);
+    const leftTail = point(northAngle + Math.PI / 2, 4);
+    const tail = point(northAngle + Math.PI, 18);
+    const rightTail = point(northAngle - Math.PI / 2, 4);
     ctx.beginPath();
-    points.forEach((shapePoint, index) => {
-      if (index === 0) ctx.moveTo(shapePoint.x, shapePoint.y);
-      else ctx.lineTo(shapePoint.x, shapePoint.y);
-    });
+    ctx.moveTo(tip.x, tip.y);
+    ctx.lineTo(leftHead.x, leftHead.y);
+    ctx.lineTo(leftTail.x, leftTail.y);
+    ctx.lineTo(tail.x, tail.y);
+    ctx.lineTo(rightTail.x, rightTail.y);
+    ctx.lineTo(rightHead.x, rightHead.y);
     ctx.closePath();
     ctx.fillStyle = fill;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = lineWidth;
     ctx.fill();
     ctx.stroke();
   }
 
-  const rightAngle = northAngle + Math.PI / 2;
-  const southAngle = northAngle + Math.PI;
-  const westAngle = northAngle - Math.PI / 2;
-  const northLong = 21;
-  const sideLong = 17;
-  const southLong = 19;
-  const shortLong = 10;
-  const center = { x, y };
-  const white = "#fbf5df";
   const ink = "#06183a";
+  const paper = "#fbf5df";
 
   ctx.save();
-  ctx.lineJoin = "miter";
-  ctx.lineWidth = 3.5;
-  ctx.strokeStyle = white;
-  [
-    [center, point(northAngle - 0.13, northLong), point(northAngle, northLong + 3), point(northAngle + 0.13, northLong)],
-    [center, point(rightAngle - 0.12, sideLong), point(rightAngle, sideLong + 8), point(rightAngle + 0.12, sideLong)],
-    [center, point(southAngle - 0.12, southLong), point(southAngle, southLong + 3), point(southAngle + 0.12, southLong)],
-    [center, point(westAngle - 0.12, sideLong), point(westAngle, sideLong + 8), point(westAngle + 0.12, sideLong)],
-    [center, point(northAngle + Math.PI / 4 - 0.17, shortLong), point(northAngle + Math.PI / 4, shortLong + 3), point(northAngle + Math.PI / 4 + 0.17, shortLong)],
-    [center, point(northAngle + (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle + (Math.PI * 3) / 4, shortLong + 3), point(northAngle + (Math.PI * 3) / 4 + 0.17, shortLong)],
-    [center, point(northAngle - Math.PI / 4 - 0.17, shortLong), point(northAngle - Math.PI / 4, shortLong + 3), point(northAngle - Math.PI / 4 + 0.17, shortLong)],
-    [center, point(northAngle - (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle - (Math.PI * 3) / 4, shortLong + 3), point(northAngle - (Math.PI * 3) / 4 + 0.17, shortLong)],
-  ].forEach((shape) => drawShape(shape, white));
-
-  ctx.lineWidth = 1.2;
-  ctx.strokeStyle = ink;
-  drawShape([center, point(northAngle - 0.13, northLong), point(northAngle, northLong + 3), point(northAngle + 0.13, northLong)], ink);
-  drawShape([center, point(rightAngle - 0.12, sideLong), point(rightAngle, sideLong + 8), point(rightAngle + 0.12, sideLong)], white);
-  drawShape([center, point(southAngle - 0.12, southLong), point(southAngle, southLong + 3), point(southAngle + 0.12, southLong)], white);
-  drawShape([center, point(westAngle - 0.12, sideLong), point(westAngle, sideLong + 8), point(westAngle + 0.12, sideLong)], white);
-  drawShape([center, point(northAngle + Math.PI / 4 - 0.17, shortLong), point(northAngle + Math.PI / 4, shortLong + 3), point(northAngle + Math.PI / 4 + 0.17, shortLong)], white);
-  drawShape([center, point(northAngle + (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle + (Math.PI * 3) / 4, shortLong + 3), point(northAngle + (Math.PI * 3) / 4 + 0.17, shortLong)], white);
-  drawShape([center, point(northAngle - Math.PI / 4 - 0.17, shortLong), point(northAngle - Math.PI / 4, shortLong + 3), point(northAngle - Math.PI / 4 + 0.17, shortLong)], white);
-  drawShape([center, point(northAngle - (Math.PI * 3) / 4 - 0.17, shortLong), point(northAngle - (Math.PI * 3) / 4, shortLong + 3), point(northAngle - (Math.PI * 3) / 4 + 0.17, shortLong)], white);
+  ctx.lineJoin = "round";
+  drawArrow(ink, paper, 4);
+  drawArrow(ink, ink, 1.4);
+  ctx.translate(x, y);
+  ctx.rotate(northAngle + Math.PI / 2);
+  ctx.font = "900 9px Courier New, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = paper;
+  ctx.fillText("N", 2, -5);
   ctx.restore();
 }
 
