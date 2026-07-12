@@ -609,62 +609,8 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   ctx.beginPath();
   ctx.arc(finish.x, finish.y, 7, 0, Math.PI * 2);
   ctx.fill();
-  drawReceiptCompass(ctx, margin + mapWidth - 28, y + mapHeight - 28, best.angle);
   ctx.textAlign = "left";
   return y + mapHeight + 30;
-}
-
-function drawReceiptCompass(ctx, x, y, routeRotation) {
-  const northVector = {
-    x: -Math.sin(routeRotation),
-    y: -Math.cos(routeRotation),
-  };
-  const northAngle = Math.atan2(northVector.y, northVector.x);
-
-  function point(angle, distance) {
-    return {
-      x: x + Math.cos(angle) * distance,
-      y: y + Math.sin(angle) * distance,
-    };
-  }
-
-  function drawArrow(fill, stroke, lineWidth) {
-    const tip = point(northAngle, 22);
-    const leftHead = point(northAngle + Math.PI - 0.54, 8);
-    const rightHead = point(northAngle + Math.PI + 0.54, 8);
-    const leftTail = point(northAngle + Math.PI / 2, 4);
-    const tail = point(northAngle + Math.PI, 18);
-    const rightTail = point(northAngle - Math.PI / 2, 4);
-    ctx.beginPath();
-    ctx.moveTo(tip.x, tip.y);
-    ctx.lineTo(leftHead.x, leftHead.y);
-    ctx.lineTo(leftTail.x, leftTail.y);
-    ctx.lineTo(tail.x, tail.y);
-    ctx.lineTo(rightTail.x, rightTail.y);
-    ctx.lineTo(rightHead.x, rightHead.y);
-    ctx.closePath();
-    ctx.fillStyle = fill;
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = lineWidth;
-    ctx.fill();
-    ctx.stroke();
-  }
-
-  const ink = "#06183a";
-  const paper = "#fbf5df";
-
-  ctx.save();
-  ctx.lineJoin = "round";
-  drawArrow(ink, paper, 4);
-  drawArrow(ink, ink, 1.4);
-  ctx.translate(x, y);
-  ctx.rotate(northAngle + Math.PI / 2);
-  ctx.font = "900 9px Courier New, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = paper;
-  ctx.fillText("N", 2, -5);
-  ctx.restore();
 }
 
 function receiptSplits(ctx, rows, y, margin, mapper) {

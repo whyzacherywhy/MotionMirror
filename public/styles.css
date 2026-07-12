@@ -720,19 +720,6 @@ code {
   border-top: 1px solid var(--runner-line);
 }
 
-.runner-map::after {
-  content: "";
-  position: absolute;
-  right: 14px;
-  bottom: 72px;
-  z-index: 520;
-  width: 54px;
-  height: 54px;
-  background: url("/compass-star.svg") center / contain no-repeat;
-  pointer-events: none;
-  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.34));
-}
-
 .runner-map.is-hidden {
   display: none;
 }
