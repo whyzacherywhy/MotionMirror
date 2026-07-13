@@ -233,6 +233,18 @@ p {
   font-size: 2.55rem;
 }
 
+.elevation-stat {
+  gap: 6px;
+}
+
+.elevation-stat canvas {
+  width: 100%;
+  height: 44px;
+  display: block;
+  border-bottom: 1px solid color-mix(in srgb, var(--text) 15%, transparent);
+  opacity: 0.92;
+}
+
 .lab-stats span {
   color: var(--muted);
   font-size: 0.82rem;

@@ -45,6 +45,7 @@ const el = {
   averagePace: document.querySelector("#averagePace"),
   splitProgress: document.querySelector("#splitProgress"),
   elevation: document.querySelector("#elevation"),
+  elevationChart: document.querySelector("#elevationChart"),
   grade: document.querySelector("#grade"),
   accuracy: document.querySelector("#accuracy"),
   updatedAt: document.querySelector("#updatedAt"),
@@ -209,6 +210,79 @@ function recentGrade(points) {
 
 function currentGainFeet(points) {
   return elevationGainLossFeet(points).gain;
+}
+
+function elevationChartPoints(points) {
+  const chartPoints = [];
+  let meters = 0;
+
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    if (!Number.isFinite(point?.altitude)) continue;
+    if (index > 0) meters += usableSegmentMeters(points[index - 1], point);
+    if (chartPoints.length && meters === chartPoints.at(-1).meters) continue;
+    chartPoints.push({ meters, feet: metersToFeet(point.altitude) });
+  }
+
+  if (chartPoints.length < 3) return chartPoints;
+
+  return chartPoints.map((point, index) => {
+    const neighbors = chartPoints.slice(Math.max(0, index - 2), Math.min(chartPoints.length, index + 3));
+    const averageFeet = neighbors.reduce((sum, item) => sum + item.feet, 0) / neighbors.length;
+    return { ...point, feet: averageFeet };
+  });
+}
+
+function drawElevationChart(points) {
+  const canvas = el.elevationChart;
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(1, Math.round(rect.width || canvas.width));
+  const height = Math.max(1, Math.round(rect.height || canvas.height));
+  const scale = window.devicePixelRatio || 1;
+  if (canvas.width !== width * scale || canvas.height !== height * scale) {
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+  }
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const chartPoints = elevationChartPoints(points).slice(-160);
+  if (chartPoints.length < 2) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, height - 1);
+    ctx.lineTo(width, height - 1);
+    ctx.stroke();
+    return;
+  }
+
+  const minFeet = Math.min(...chartPoints.map((point) => point.feet));
+  const maxFeet = Math.max(...chartPoints.map((point) => point.feet));
+  const startMeters = chartPoints[0].meters;
+  const endMeters = chartPoints.at(-1).meters;
+  const meterRange = Math.max(1, endMeters - startMeters);
+  const feetRange = Math.max(10, maxFeet - minFeet);
+  const padding = 4;
+
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--cyan").trim() || "#3de0cd";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+
+  chartPoints.forEach((point, index) => {
+    const x = ((point.meters - startMeters) / meterRange) * width;
+    const y = height - padding - ((point.feet - minFeet) / feetRange) * (height - padding * 2);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
 }
 
 function interpolatePoint(a, b, ratio) {
@@ -406,6 +480,7 @@ function drawSession(session) {
   el.averagePace.textContent = formatPace(stats.averagePace);
   el.splitProgress.textContent = `Mile ${stats.splitNumber} · ${stats.currentSplitMiles.toFixed(2)}/${stats.splitDistanceMiles} mi`;
   el.elevation.textContent = `+${Math.round(stats.elevationGainFeet)} / -${Math.round(stats.elevationLossFeet)} ft`;
+  drawElevationChart(points);
   el.grade.textContent = `grade ${grade === "--" ? "--" : `${grade}%`}`;
   el.accuracy.textContent = last?.accuracy ? `${Math.round(metersToFeet(last.accuracy))} ft` : "-- ft";
   el.updatedAt.textContent = last ? formatTime(last.at) : "waiting";
