@@ -6,6 +6,8 @@ const poorAccuracyMeters = 35;
 const hardAccuracyMeters = 55;
 const maxRunningSpeedMetersPerSecond = 8.5;
 const minElevationChangeFeet = 3;
+const minSplitMilesForOwnPace = 0.15;
+const minSplitSecondsForOwnPace = 45;
 
 function distanceMeters(a, b) {
   const earth = 6371000;
@@ -75,6 +77,7 @@ function sessionStats(points, startedAt, elapsedSeconds) {
   let splitStartAt = startedAt || points[0]?.at || 0;
   let currentSplitMiles = 0;
   let nextSplitBoundaryMeters = 1609.344;
+  let lastCompletedSplitPace = 0;
 
   for (let i = 1; i < points.length; i += 1) {
     const segmentMeters = usableSegmentMeters(points[i - 1], points[i]);
@@ -85,6 +88,8 @@ function sessionStats(points, startedAt, elapsedSeconds) {
       const segmentRatio = (nextSplitBoundaryMeters - beforeMeters) / segmentMeters;
       const segmentStart = points[i - 1].at || splitStartAt;
       const segmentEnd = points[i].at || segmentStart;
+      const completedSplitMinutes = Math.max(0.01, (segmentStart + (segmentEnd - segmentStart) * segmentRatio - splitStartAt) / 60000);
+      lastCompletedSplitPace = completedSplitMinutes / splitDistanceMiles;
       splitStartAt = segmentStart + (segmentEnd - segmentStart) * segmentRatio;
       nextSplitBoundaryMeters += splitDistanceMiles * 1609.344;
     }
@@ -109,7 +114,24 @@ function sessionStats(points, startedAt, elapsedSeconds) {
   const splitElapsedMinutes = splitStartAt
     ? Math.max(0.01, (referenceTime - splitStartAt) / 60000)
     : 0;
-  const splitPace = currentSplitMiles > 0.02 ? splitElapsedMinutes / currentSplitMiles : 0;
+  const rawSplitPace = currentSplitMiles > 0.02 ? splitElapsedMinutes / currentSplitMiles : 0;
+  const referenceSplitPace = lastCompletedSplitPace || averagePace;
+  const splitElapsedSeconds = splitElapsedMinutes * 60;
+  const shouldUseReferencePace =
+    referenceSplitPace &&
+    rawSplitPace &&
+    (currentSplitMiles < minSplitMilesForOwnPace || splitElapsedSeconds < minSplitSecondsForOwnPace);
+  const shouldBlendReferencePace =
+    referenceSplitPace &&
+    rawSplitPace &&
+    currentSplitMiles < 0.3 &&
+    (rawSplitPace < referenceSplitPace * 0.55 || rawSplitPace > referenceSplitPace * 1.9);
+  const blendWeight = Math.min(1, Math.max(0, (currentSplitMiles - minSplitMilesForOwnPace) / 0.15));
+  const splitPace = shouldUseReferencePace
+    ? referenceSplitPace
+    : shouldBlendReferencePace
+      ? referenceSplitPace * (1 - blendWeight) + rawSplitPace * blendWeight
+      : rawSplitPace;
 
   return {
     meters,
@@ -122,6 +144,8 @@ function sessionStats(points, startedAt, elapsedSeconds) {
     currentSplitMiles,
     splitNumber: Math.floor(miles / splitDistanceMiles) + 1,
     splitPace,
+    rawSplitPace,
+    referenceSplitPace,
   };
 }
 

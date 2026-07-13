@@ -1,5 +1,6 @@
 const profilesStorageKey = "coachLive.profiles.v1";
 const runDraftPrefix = "coachLive.runDraft.";
+const runDraftIndexKey = "coachLive.runDraft.index.v1";
 
 function loadLocalProfiles() {
   try {
@@ -251,7 +252,20 @@ function deleteLocalRunFromProfile(profileIdValue, runIdValue) {
 
 function saveRunDraft(sessionId, session) {
   if (!session?.points?.length) return;
-  localStorage.setItem(`${runDraftPrefix}${sessionId}`, JSON.stringify(session));
+  const savedAt = Date.now();
+  const draft = { ...session, draftSavedAt: savedAt };
+  localStorage.setItem(`${runDraftPrefix}${sessionId}`, JSON.stringify(draft));
+
+  const index = loadRunDraftIndex().filter((item) => item.sessionId !== sessionId);
+  index.unshift({
+    sessionId,
+    savedAt,
+    startedAt: session.startedAt || session.points[0]?.at || savedAt,
+    runnerName: session.runnerName || "Runner",
+    status: session.status || "idle",
+    pointCount: session.points.length,
+  });
+  localStorage.setItem(runDraftIndexKey, JSON.stringify(index.slice(0, 10)));
 }
 
 function loadRunDraft(sessionId) {
@@ -259,6 +273,14 @@ function loadRunDraft(sessionId) {
     return JSON.parse(localStorage.getItem(`${runDraftPrefix}${sessionId}`));
   } catch {
     return null;
+  }
+}
+
+function loadRunDraftIndex() {
+  try {
+    return JSON.parse(localStorage.getItem(runDraftIndexKey)) || [];
+  } catch {
+    return [];
   }
 }
 

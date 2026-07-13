@@ -25,6 +25,7 @@ let marker;
 let pathLine;
 let activeSession = { id: sessionId, points: [], cues: [], status: "idle" };
 let lastSaveableSession = loadRunDraft(sessionId);
+let recoveredDraftLoaded = Boolean(lastSaveableSession?.points?.length);
 let selectedTrackMeters = 200;
 let holdEndedSession = false;
 let splitRequestPending = false;
@@ -79,6 +80,18 @@ const el = {
 
 const runnerUrl = `${location.origin}/runner?session=${encodeURIComponent(sessionId)}`;
 el.runnerLink.href = runnerUrl;
+
+function refreshSaveButtonState() {
+  if (lastSaveableSession?.points?.length && activeSession.status === "stopped") {
+    el.saveRun.textContent = "Save stopped run";
+    return;
+  }
+  if (lastSaveableSession?.points?.length && recoveredDraftLoaded && !activeSession.points?.length) {
+    el.saveRun.textContent = "Save recovered run";
+    return;
+  }
+  el.saveRun.textContent = "Save run";
+}
 
 function isTrackingFresh(session) {
   if (session.status !== "live" || !session.lastPoint?.at) return false;
@@ -370,8 +383,10 @@ function drawSession(session) {
   const points = session.points || [];
   if (points.length > 1 && session.startedAt) {
     lastSaveableSession = snapshotForSave(activeSession);
+    recoveredDraftLoaded = false;
     saveRunDraft(sessionId, lastSaveableSession);
   }
+  refreshSaveButtonState();
   const elapsedSeconds = sessionElapsedSeconds(activeSession);
   const stats = sessionStats(points, session.startedAt, elapsedSeconds);
   const currentCoachSplit = displayedCoachSplit(activeSession);
@@ -505,11 +520,15 @@ async function populateProfileSelect() {
 async function openSaveModal() {
   if (activeSession?.points?.length) {
     lastSaveableSession = snapshotForSave(activeSession);
+    recoveredDraftLoaded = false;
     saveRunDraft(sessionId, lastSaveableSession);
   }
   lastSaveableSession ||= loadRunDraft(sessionId);
+  recoveredDraftLoaded = Boolean(lastSaveableSession?.points?.length && !activeSession?.points?.length);
   if (!lastSaveableSession?.points?.length) {
     el.saveStatus.textContent = "No route data has been recorded yet.";
+  } else if (activeSession.status === "stopped" || recoveredDraftLoaded) {
+    el.saveStatus.textContent = "Stopped run recovered. Save it to a runner profile before starting another session.";
   } else {
     el.saveStatus.textContent = "Run data will include route, splits, history, elevation, weather, and notes.";
   }
@@ -678,8 +697,13 @@ events.addEventListener("ended-session", (event) => {
   const session = JSON.parse(event.data);
   if (session.id !== sessionId) return;
   lastSaveableSession = snapshotForSave({ ...session, receivedAt: Date.now() });
+  recoveredDraftLoaded = false;
   saveRunDraft(sessionId, lastSaveableSession);
   acceptSessionUpdate(session, { force: true });
+  refreshSaveButtonState();
+  openSaveModal().catch(() => {
+    el.saveStatus.textContent = "Runner stopped. Save this run before starting another session.";
+  });
 });
 events.addEventListener("presence", (event) => {
   const presence = JSON.parse(event.data);
