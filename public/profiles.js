@@ -256,6 +256,7 @@ async function renderRunPage() {
   }
 
   renderSavedMap(run);
+  drawSummaryElevationChart(run.route || []);
   renderMileTable(run);
   renderSplitTable(run);
   renderSummaryHistory(run);
@@ -785,6 +786,77 @@ function renderSavedMap(run) {
   L.marker(route[0]).addTo(map).bindPopup("Start");
   L.marker(route.at(-1)).addTo(map).bindPopup("Finish");
   map.fitBounds(line.getBounds(), { padding: [28, 28] });
+}
+
+function elevationChartPoints(points) {
+  const chartPoints = [];
+  let meters = 0;
+
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    if (!Number.isFinite(point?.altitude)) continue;
+    if (index > 0) meters += usableSegmentMeters(points[index - 1], point);
+    if (chartPoints.length && meters === chartPoints.at(-1).meters) continue;
+    chartPoints.push({ meters, feet: metersToFeet(point.altitude) });
+  }
+
+  if (chartPoints.length < 3) return chartPoints;
+
+  return chartPoints.map((point, index) => {
+    const neighbors = chartPoints.slice(Math.max(0, index - 2), Math.min(chartPoints.length, index + 3));
+    const averageFeet = neighbors.reduce((sum, item) => sum + item.feet, 0) / neighbors.length;
+    return { ...point, feet: averageFeet };
+  });
+}
+
+function drawSummaryElevationChart(points) {
+  const canvas = document.querySelector("#summaryElevationChart");
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(1, Math.round(rect.width || canvas.width));
+  const height = Math.max(1, Math.round(rect.height || canvas.height));
+  const scale = window.devicePixelRatio || 1;
+  if (canvas.width !== width * scale || canvas.height !== height * scale) {
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+  }
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const chartPoints = elevationChartPoints(points);
+  if (chartPoints.length < 2) {
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() || "#8b969f";
+    ctx.font = "700 12px Helvetica, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("No elevation data", width / 2, height / 2);
+    return;
+  }
+
+  const minFeet = Math.min(...chartPoints.map((point) => point.feet));
+  const maxFeet = Math.max(...chartPoints.map((point) => point.feet));
+  const startMeters = chartPoints[0].meters;
+  const endMeters = chartPoints.at(-1).meters;
+  const meterRange = Math.max(1, endMeters - startMeters);
+  const feetRange = Math.max(10, maxFeet - minFeet);
+  const padding = 12;
+
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--cyan").trim() || "#3de0cd";
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+
+  chartPoints.forEach((point, index) => {
+    const x = padding + ((point.meters - startMeters) / meterRange) * (width - padding * 2);
+    const y = height - padding - ((point.feet - minFeet) / feetRange) * (height - padding * 2);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
 }
 
 function renderMileTable(run) {
