@@ -310,8 +310,8 @@ function setupShareDownload(profile, run) {
   button.addEventListener("click", () => downloadSharePng(profile, run));
 }
 
-function downloadSharePng(profile, run) {
-  const canvas = drawShareCanvas(profile, run);
+async function downloadSharePng(profile, run) {
+  const canvas = drawShareCanvas(run, await loadShareAssets());
   const link = document.createElement("a");
   const safeName = (profile.name || "runner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   link.download = `motion-mirror-share-${safeName || "runner"}-${run.dateLabel || "run"}.png`;
@@ -319,7 +319,7 @@ function downloadSharePng(profile, run) {
   link.click();
 }
 
-function drawShareCanvas(profile, run) {
+function drawShareCanvas(run, assets) {
   const width = 1080;
   const height = 1350;
   const canvas = document.createElement("canvas");
@@ -327,7 +327,7 @@ function drawShareCanvas(profile, run) {
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   const ink = "#ffffff";
-  const accent = "#ff5a1f";
+  const accent = "#3de0cd";
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = ink;
@@ -335,12 +335,15 @@ function drawShareCanvas(profile, run) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  drawShareRoute(ctx, run.route || [], 90, 95, width - 180, 720, accent);
+  drawShareRoute(ctx, run.route || [], 90, 80, width - 180, 700, accent);
 
   ctx.textAlign = "center";
   ctx.fillStyle = ink;
-  ctx.font = "900 78px Helvetica, Arial, sans-serif";
-  ctx.fillText("MOTION MIRROR", width / 2, 900);
+  const wordmarkWidth = 660;
+  const wordmarkHeight = wordmarkWidth * (assets.wordmark.height / assets.wordmark.width);
+  ctx.drawImage(assets.wordmark, (width - wordmarkWidth) / 2, 815, wordmarkWidth, wordmarkHeight);
+  const ghostSize = 88;
+  ctx.drawImage(assets.ghost, (width - ghostSize) / 2, 815 + wordmarkHeight + 18, ghostSize, ghostSize);
 
   const stats = [
     ["Distance", `${run.distanceMiles.toFixed(2)} mi`],
@@ -351,15 +354,10 @@ function drawShareCanvas(profile, run) {
   stats.forEach(([label, value], index) => {
     const x = columnWidth * index + columnWidth / 2;
     ctx.font = "900 32px Helvetica, Arial, sans-serif";
-    ctx.fillText(label, x, 1000);
+    ctx.fillText(label, x, 1080);
     ctx.font = "900 58px Helvetica, Arial, sans-serif";
-    ctx.fillText(value, x, 1070);
+    ctx.fillText(value, x, 1150);
   });
-
-  ctx.font = "800 28px Helvetica, Arial, sans-serif";
-  ctx.fillText(profile.name || "Runner", width / 2, 1190);
-  ctx.font = "800 24px Helvetica, Arial, sans-serif";
-  ctx.fillText(run.dateLabel || fullDate(run.startedAt), width / 2, 1230);
 
   return canvas;
 }
@@ -430,6 +428,7 @@ function setupSavedTextBox({ textarea, button, editLabel, saveLabel, onSave }) {
 
 let receiptAssetsPromise;
 let coachNamePromise;
+let shareAssetsPromise;
 const receiptQuoteStorageKey = "motionMirror.lastReceiptQuote";
 const receiptQuotes = [
   { text: "This is living.", weight: 4 },
@@ -493,6 +492,14 @@ function loadReceiptAssets() {
     loadTransparentImage("/motion-mirror-receipt-wordmark.png"),
   ]).then(([ghost, wordmark]) => ({ ghost, wordmark }));
   return receiptAssetsPromise;
+}
+
+function loadShareAssets() {
+  shareAssetsPromise ||= Promise.all([
+    loadTransparentImage("/motion-mirror-share-ghost.png"),
+    loadTransparentImage("/motion-mirror-receipt-wordmark.png"),
+  ]).then(([ghost, wordmark]) => ({ ghost, wordmark }));
+  return shareAssetsPromise;
 }
 
 function loadCoachName() {
