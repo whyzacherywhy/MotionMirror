@@ -363,12 +363,15 @@ function drawShareCanvas(run, assets) {
 }
 
 function drawWhiteImage(ctx, image, x, y, width, height) {
-  ctx.save();
-  ctx.drawImage(image, x, y, width, height);
-  ctx.globalCompositeOperation = "source-in";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(x, y, width, height);
-  ctx.restore();
+  const tinted = document.createElement("canvas");
+  tinted.width = Math.max(1, Math.round(width));
+  tinted.height = Math.max(1, Math.round(height));
+  const tintedCtx = tinted.getContext("2d");
+  tintedCtx.drawImage(image, 0, 0, tinted.width, tinted.height);
+  tintedCtx.globalCompositeOperation = "source-in";
+  tintedCtx.fillStyle = "#ffffff";
+  tintedCtx.fillRect(0, 0, tinted.width, tinted.height);
+  ctx.drawImage(tinted, x, y, width, height);
 }
 
 function drawShareRoute(ctx, route, x, y, width, height, color) {
