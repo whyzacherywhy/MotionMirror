@@ -335,13 +335,13 @@ function drawShareCanvas(run, assets) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  drawShareRoute(ctx, run.route || [], 90, 80, width - 180, 700, accent);
+  drawShareRoute(ctx, run.route || [], 90, 80, width - 180, 680, accent);
 
   ctx.textAlign = "center";
   ctx.fillStyle = ink;
   const wordmarkWidth = 660;
   const wordmarkHeight = wordmarkWidth * (assets.wordmark.height / assets.wordmark.width);
-  drawWhiteImage(ctx, assets.wordmark, (width - wordmarkWidth) / 2, 765, wordmarkWidth, wordmarkHeight);
+  drawWhiteImage(ctx, assets.wordmark, (width - wordmarkWidth) / 2, 710, wordmarkWidth, wordmarkHeight);
 
   const stats = [
     ["Distance", `${run.distanceMiles.toFixed(2)} mi`],
@@ -352,12 +352,12 @@ function drawShareCanvas(run, assets) {
   stats.forEach(([label, value], index) => {
     const x = columnWidth * index + columnWidth / 2;
     ctx.font = "900 32px Helvetica, Arial, sans-serif";
-    ctx.fillText(label, x, 1010);
+    ctx.fillText(label, x, 905);
     ctx.font = "900 58px Helvetica, Arial, sans-serif";
-    ctx.fillText(value, x, 1080);
+    ctx.fillText(value, x, 975);
   });
   const ghostSize = 92;
-  drawWhiteImage(ctx, assets.ghost, (width - ghostSize) / 2, 1140, ghostSize, ghostSize);
+  drawWhiteImage(ctx, assets.ghost, (width - ghostSize) / 2, 1040, ghostSize, ghostSize);
 
   return canvas;
 }
