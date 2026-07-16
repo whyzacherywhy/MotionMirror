@@ -267,6 +267,7 @@ async function renderRunPage() {
     receiptNotesButton,
     receiptHomeworkButton,
   });
+  setupShareDownload(profile, run);
 }
 
 function setupReceiptDownload(profile, run, fields) {
@@ -301,6 +302,106 @@ function setupReceiptDownload(profile, run, fields) {
 
   jpgButton.addEventListener("click", () => downloadReceipt(profile, run, notes, takeaway, "jpg"));
   pngButton.addEventListener("click", () => downloadReceipt(profile, run, notes, takeaway, "png"));
+}
+
+function setupShareDownload(profile, run) {
+  const button = document.querySelector("#downloadSharePng");
+  if (!button) return;
+  button.addEventListener("click", () => downloadSharePng(profile, run));
+}
+
+function downloadSharePng(profile, run) {
+  const canvas = drawShareCanvas(profile, run);
+  const link = document.createElement("a");
+  const safeName = (profile.name || "runner").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  link.download = `motion-mirror-share-${safeName || "runner"}-${run.dateLabel || "run"}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+function drawShareCanvas(profile, run) {
+  const width = 1080;
+  const height = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  const ink = "#ffffff";
+  const accent = "#ff5a1f";
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = ink;
+  ctx.strokeStyle = accent;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  drawShareRoute(ctx, run.route || [], 90, 95, width - 180, 720, accent);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = ink;
+  ctx.font = "900 78px Helvetica, Arial, sans-serif";
+  ctx.fillText("MOTION MIRROR", width / 2, 900);
+
+  const stats = [
+    ["Distance", `${run.distanceMiles.toFixed(2)} mi`],
+    ["Pace", formatPace(run.averagePace)],
+    ["Time", formatDuration(run.elapsedSeconds)],
+  ];
+  const columnWidth = width / stats.length;
+  stats.forEach(([label, value], index) => {
+    const x = columnWidth * index + columnWidth / 2;
+    ctx.font = "900 32px Helvetica, Arial, sans-serif";
+    ctx.fillText(label, x, 1000);
+    ctx.font = "900 58px Helvetica, Arial, sans-serif";
+    ctx.fillText(value, x, 1070);
+  });
+
+  ctx.font = "800 28px Helvetica, Arial, sans-serif";
+  ctx.fillText(profile.name || "Runner", width / 2, 1190);
+  ctx.font = "800 24px Helvetica, Arial, sans-serif";
+  ctx.fillText(run.dateLabel || fullDate(run.startedAt), width / 2, 1230);
+
+  return canvas;
+}
+
+function drawShareRoute(ctx, route, x, y, width, height, color) {
+  if (route.length < 2) {
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 44px Helvetica, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("NO ROUTE", x + width / 2, y + height / 2);
+    ctx.restore();
+    return;
+  }
+
+  const points = fittedRoutePoints(route, x, y, width, height, { rotate: true, pad: 18 });
+  const smoothPoints = smoothReceiptRoute(points);
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 16;
+  ctx.beginPath();
+  smoothPoints.forEach((point, index) => {
+    if (index === 0) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
+  });
+  ctx.stroke();
+
+  const start = points[0];
+  const finish = points.at(-1);
+  ctx.fillStyle = "rgba(0, 0, 0, 0)";
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(start.x, start.y, 16, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(finish.x, finish.y, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
 
 function setupSavedTextBox({ textarea, button, editLabel, saveLabel, onSave }) {
@@ -701,6 +802,65 @@ function receiptRoute(ctx, route, y, margin, mapWidth) {
   ctx.fill();
   ctx.textAlign = "left";
   return y + mapHeight + 30;
+}
+
+function fittedRoutePoints(route, x, y, width, height, options = {}) {
+  const pad = options.pad ?? 14;
+  const meanLat = route.reduce((sum, point) => sum + point.lat, 0) / route.length;
+  const metersPerLng = 111320 * Math.cos((meanLat * Math.PI) / 180);
+  const projected = route.map((point) => ({
+    x: point.lng * metersPerLng,
+    y: point.lat * 110540,
+  }));
+
+  function rotatePoints(points, angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return points.map((point) => ({
+      x: point.x * cos - point.y * sin,
+      y: point.x * sin + point.y * cos,
+    }));
+  }
+
+  function boundsFor(points) {
+    const xs = points.map((point) => point.x);
+    const ys = points.map((point) => point.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return {
+      minX,
+      maxX,
+      minY,
+      maxY,
+      width: maxX - minX || 1,
+      height: maxY - minY || 1,
+    };
+  }
+
+  let best = { rotated: projected, bounds: boundsFor(projected), height: 0 };
+  if (options.rotate) {
+    for (let degrees = -89; degrees <= 89; degrees += 1) {
+      const angle = (degrees * Math.PI) / 180;
+      const rotated = rotatePoints(projected, angle);
+      const bounds = boundsFor(rotated);
+      const projectedHeight = bounds.height * ((width - pad * 2) / bounds.width) + pad * 2;
+      if (!best.height || projectedHeight < best.height) best = { rotated, bounds, height: projectedHeight };
+    }
+  }
+
+  const { minX, maxY, width: routeWidthMeters, height: routeHeightMeters } = best.bounds;
+  const scale = Math.min((width - pad * 2) / routeWidthMeters, (height - pad * 2) / routeHeightMeters);
+  const routeWidth = routeWidthMeters * scale;
+  const routeHeight = routeHeightMeters * scale;
+  const xOffset = x + (width - routeWidth) / 2;
+  const yOffset = y + (height - routeHeight) / 2;
+
+  return best.rotated.map((point) => ({
+    x: xOffset + (point.x - minX) * scale,
+    y: yOffset + (maxY - point.y) * scale,
+  }));
 }
 
 function smoothReceiptRoute(points) {
