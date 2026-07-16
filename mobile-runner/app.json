@@ -12,6 +12,7 @@
       "bundleIdentifier": "com.motionmirror.runner",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Motion Mirror uses your location so your coach can follow your route, pace, distance, and elevation during a live session.",
+        "NSLocationAlwaysUsageDescription": "Motion Mirror uses background location during an active run so tracking can continue while your phone is locked or you open music.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Motion Mirror uses background location during an active run so tracking can continue while your phone is locked or you open music.",
         "UIBackgroundModes": ["location"]
       }

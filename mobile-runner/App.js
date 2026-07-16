@@ -19,6 +19,7 @@ import {
 const apiBaseUrl = "https://coachlink-81u4.onrender.com";
 const backgroundLocationTask = "motion-mirror-background-location";
 const trackingStateKey = "motionMirror.runner.tracking";
+const enableBackgroundLocation = false;
 const metersToMiles = (meters) => meters / 1609.344;
 const metersToFeet = (meters) => meters * 3.28084;
 const splitDistanceMiles = 1;
@@ -146,6 +147,18 @@ function formatPace(minutesPerMile) {
   return `${minutes}:${seconds}/mi`;
 }
 
+function cleanSessionId(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    return url.searchParams.get("session") || url.searchParams.get("sessionId") || trimmed;
+  } catch {
+    const match = trimmed.match(/[?&]session(?:Id)?=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : trimmed;
+  }
+}
+
 async function readTrackingState() {
   try {
     return JSON.parse(await AsyncStorage.getItem(trackingStateKey));
@@ -250,12 +263,13 @@ export default function App() {
   }, [pendingUploads]);
 
   async function queuePoint(point, action = "track") {
+    const cleanSession = cleanSessionId(sessionId) || "demo";
     setPoints((current) => [...current, point].slice(-2500));
     setLastAccuracy(point.accuracy);
     setPendingUploads((current) => [
       ...current,
       {
-        sessionId: sessionId.trim() || "demo",
+        sessionId: cleanSession,
         runnerName: runnerName.trim() || "Runner",
         action,
         mode,
@@ -264,13 +278,18 @@ export default function App() {
     ].slice(-120));
   }
 
-  async function requestPermissions() {
-    const foreground = await Location.requestForegroundPermissionsAsync();
-    if (foreground.status !== "granted") throw new Error("Location permission is required.");
+async function requestPermissions() {
+  const foreground = await Location.requestForegroundPermissionsAsync();
+  if (foreground.status !== "granted") throw new Error("Location permission is required.");
 
-    const background = await Location.requestBackgroundPermissionsAsync();
-    if (background.status !== "granted") {
-      setStatus("Foreground GPS only");
+  if (!enableBackgroundLocation) {
+    setStatus("Foreground GPS test");
+    return false;
+  }
+
+  const background = await Location.requestBackgroundPermissionsAsync();
+  if (background.status !== "granted") {
+    setStatus("Foreground GPS only");
       return false;
     }
 
@@ -293,7 +312,7 @@ export default function App() {
       setIsTracking(true);
       await writeTrackingState({
         isTracking: true,
-        sessionId: sessionId.trim() || "demo",
+        sessionId: cleanSessionId(sessionId) || "demo",
         runnerName: runnerName.trim() || "Runner",
         mode: nextMode,
       });
@@ -349,7 +368,7 @@ export default function App() {
     setIsTracking(false);
     await writeTrackingState({ isTracking: false });
     await Location.stopLocationUpdatesAsync(backgroundLocationTask).catch(() => {});
-    await postControl("/api/pause", sessionId.trim() || "demo").catch(() => {});
+    await postControl("/api/pause", cleanSessionId(sessionId) || "demo").catch(() => {});
     setStatus("Paused");
   }
 
@@ -367,7 +386,7 @@ export default function App() {
           setIsTracking(false);
           await writeTrackingState({ isTracking: false });
           await Location.stopLocationUpdatesAsync(backgroundLocationTask).catch(() => {});
-          await postControl("/api/stop", sessionId.trim() || "demo").catch(() => {});
+          await postControl("/api/stop", cleanSessionId(sessionId) || "demo").catch(() => {});
           setStatus("Stopped");
         },
       },
@@ -404,7 +423,7 @@ export default function App() {
               autoCapitalize="none"
               autoCorrect={false}
               editable={!isTracking}
-              placeholder="demo"
+              placeholder="Paste runner link or session id"
               placeholderTextColor="#78818f"
               style={styles.input}
             />
